@@ -4,6 +4,7 @@ import { LangTranslationSchema, type LangTranslation } from "@/lib/ai/schemas";
 import type { LanguageCode } from "@/lib/languages";
 import { findKeyTerms } from "@/lib/terms";
 import { translationCacheKey, type Lru } from "./lru";
+import type { ModelChoice } from "./routing";
 
 // Translates one lesson's sentences as they arrive.
 //
@@ -22,15 +23,18 @@ import { translationCacheKey, type Lru } from "./lru";
 export type PendingSegment = { id: string; seq: number; text: string; at: number };
 
 export type TranslatorDeps = {
-  model: string;
+  // Which model to use for a call, given the languages it covers. Aula uses
+  // a fast model, and a stronger one when a lower-resource ("beta") language
+  // is in the call (see MODEL_BENCHMARK.md).
+  pickModel: (langs: string[]) => ModelChoice;
   lesson: { subject: string | null; title: string | null; keyTerms: string[] };
   // Streams one completion. Must call onText with the full text so far.
-  complete: (args: { messages: ChatMessage[]; signal: AbortSignal; onText: (textSoFar: string) => void }) => Promise<string>;
+  complete: (model: string, args: { messages: ChatMessage[]; signal: AbortSignal; onText: (textSoFar: string) => void }) => Promise<string>;
   // Wraps the call in the process-wide AI scheduler.
-  schedule: <T>(priority: number, fn: () => Promise<T>) => Promise<T>;
+  schedule: <T>(priority: number, cost: number, fn: (signal: AbortSignal) => Promise<T>) => Promise<T>;
   activeLangs: () => string[];
   publish: (type: string, data: unknown, audience: "all" | { lang: string }) => void;
-  saveTranslation: (segmentId: string, lang: string, tr: LangTranslation, latencyMs: number) => Promise<void>;
+  saveTranslation: (segmentId: string, lang: string, tr: LangTranslation, latencyMs: number, model: string) => Promise<void>;
   saveFix: (segmentId: string, text: string) => Promise<void>;
   cache: Lru<string, LangTranslation>;
   now?: () => number;
@@ -102,12 +106,12 @@ export class LessonTranslator {
     }
   }
 
-  private deliver(seg: PendingSegment, lang: string, tr: LangTranslation, fromCache: boolean): void {
+  private deliver(seg: PendingSegment, lang: string, tr: LangTranslation, model: string, fromCache: boolean): void {
     const latency = this.d.now() - seg.at;
     this.d.publish("translation", { seq: seg.seq, lang, text: tr.text, terms: tr.terms }, { lang });
-    if (!fromCache) this.d.cache.set(translationCacheKey(seg.text, lang, this.d.model), tr);
+    if (!fromCache) this.d.cache.set(translationCacheKey(seg.text, lang, model), tr);
     this.d.onLatency?.(lang, latency);
-    this.d.saveTranslation(seg.id, lang, tr, Math.round(latency)).catch((err) => this.d.onError?.(err));
+    this.d.saveTranslation(seg.id, lang, tr, Math.round(latency), model).catch((err) => this.d.onError?.(err));
   }
 
   // Keep only terms the teacher listed, and only if the model's `tr` really
@@ -126,13 +130,14 @@ export class LessonTranslator {
   }
 
   private async runBatch(batch: PendingSegment[], langs: string[], priority: number): Promise<void> {
+    const { model, cost } = this.d.pickModel(langs);
     // 1. Cache hits go out immediately.
     const needed = new Map<number, Set<string>>();
     for (const seg of batch) {
       const want = new Set<string>();
       for (const lang of langs) {
-        const hit = this.d.cache.get(translationCacheKey(seg.text, lang, this.d.model));
-        if (hit) this.deliver(seg, lang, hit, true);
+        const hit = this.d.cache.get(translationCacheKey(seg.text, lang, model));
+        if (hit) this.deliver(seg, lang, hit, model, true);
         else want.add(lang);
       }
       if (want.size) needed.set(seg.seq, want);
@@ -175,7 +180,7 @@ export class LessonTranslator {
             parsed = null;
           }
           delivered.add(key); // even if invalid: don't retry mid-stream
-          if (parsed) this.deliver(seg, lang, this.cleanTerms(seg, parsed), false);
+          if (parsed) this.deliver(seg, lang, this.cleanTerms(seg, parsed), model, false);
           else this.d.publish("translation-failed", { seq: seg.seq, lang, reason: "invalid" }, { lang });
         }
       });
@@ -191,11 +196,12 @@ export class LessonTranslator {
       };
       let hardCap: ReturnType<typeof setTimeout> | undefined;
       try {
-        await this.d.schedule(priority, async () => {
+        await this.d.schedule(priority, cost, async (schedulerSignal) => {
+          schedulerSignal.addEventListener("abort", () => controller.abort(schedulerSignal.reason));
           // Timers start when the call starts, not while it waits its turn.
           hardCap = setTimeout(() => controller.abort(new Error("too slow")), this.d.maxMs);
           armStall();
-          await this.d.complete({
+          await this.d.complete(model, {
             messages,
             signal: controller.signal,
             onText: (t) => {

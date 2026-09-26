@@ -8,19 +8,20 @@ import { LessonTranslator, type TranslatorDeps } from "./translator";
 type Call = { messages: ChatMessage[]; push: (text: string) => void; finish: () => void; fail: (err: unknown) => void; signal: AbortSignal };
 
 function harness(overrides: Partial<TranslatorDeps> = {}) {
-  const calls: Call[] = [];
+  const calls: (Call & { model: string })[] = [];
   const events: { type: string; data: Record<string, unknown>; audience: unknown }[] = [];
   const saved: { segmentId: string; lang: string; tr: LangTranslation }[] = [];
   const fixes: { segmentId: string; text: string }[] = [];
   let langs = ["es", "ar"];
   const t = new LessonTranslator({
-    model: "test-model",
+    pickModel: (l) => (l.includes("so") ? { model: "quality-model", cost: 2 } : { model: "fast-model", cost: 1 }),
     lesson: { subject: "Biology", title: "Photosynthesis", keyTerms: ["photosynthesis", "ATP", "cell membrane"] },
-    complete: ({ messages, signal, onText }) =>
+    complete: (model, { messages, signal, onText }) =>
       new Promise<string>((resolve, reject) => {
         let text = "";
         signal.addEventListener("abort", () => reject(signal.reason));
         calls.push({
+          model,
           messages,
           signal,
           push: (chunk) => {
@@ -31,7 +32,7 @@ function harness(overrides: Partial<TranslatorDeps> = {}) {
           fail: reject,
         });
       }),
-    schedule: (_p, fn) => fn(),
+    schedule: (_p, _cost, fn) => fn(new AbortController().signal),
     activeLangs: () => langs,
     publish: (type, data, audience) => events.push({ type, data: data as Record<string, unknown>, audience }),
     saveTranslation: async (segmentId, lang, tr) => void saved.push({ segmentId, lang, tr }),
@@ -230,5 +231,18 @@ describe("LessonTranslator", () => {
     expect(h.calls).toHaveLength(1);
     expect(h.calls[0].messages[1].content).toContain("- vi: Vietnamese");
     expect(h.calls[0].messages[1].content).toContain('"seq":1');
+  });
+
+  it("switches to the stronger model when a beta language is in the room", async () => {
+    const h = harness();
+    h.t.enqueue({ id: "s1", seq: 1, text: "Hello." });
+    await tick();
+    h.calls[0].push(reply(1, { es: { text: "Hola." }, ar: { text: "مرحبا." } }));
+    h.calls[0].finish();
+    await tick();
+    h.setLangs(["es", "so"]);
+    h.t.enqueue({ id: "s2", seq: 2, text: "Goodbye." });
+    await tick();
+    expect(h.calls.map((c) => c.model)).toEqual(["fast-model", "quality-model"]);
   });
 });

@@ -17,17 +17,29 @@ export const env = {
   get aiModelTranslate() {
     return process.env.AI_MODEL_TRANSLATE || "";
   },
+  // Stronger model for languages with less training data (the "beta" ones),
+  // glossaries and recaps. Falls back to the translation model.
+  get aiModelQuality() {
+    return process.env.AI_MODEL_QUALITY || process.env.AI_MODEL_TRANSLATE || "";
+  },
   get aiModelRecap() {
-    return process.env.AI_MODEL_RECAP || process.env.AI_MODEL_TRANSLATE || "";
+    return process.env.AI_MODEL_RECAP || process.env.AI_MODEL_QUALITY || process.env.AI_MODEL_TRANSLATE || "";
   },
   get aiConcurrencyUnits() {
     return num("AI_CONCURRENCY_UNITS", 4);
   },
+  // AI calls in flight at once, across all lessons (see AiScheduler).
+  get aiMaxInflight() {
+    return num("AI_MAX_INFLIGHT", 1);
+  },
   get aiTranslateCost() {
     return num("AI_TRANSLATE_COST", 1);
   },
+  get aiQualityCost() {
+    return num("AI_QUALITY_COST", 2);
+  },
   get aiRecapCost() {
-    return num("AI_RECAP_COST", 4);
+    return num("AI_RECAP_COST", 2);
   },
   get lessonConcurrency() {
     return num("LESSON_CONCURRENCY", 2);
