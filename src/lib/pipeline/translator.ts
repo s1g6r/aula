@@ -52,6 +52,23 @@ export type TranslatorDeps = {
   concurrency?: number;
   onLatency?: (lang: string, ms: number) => void;
   onError?: (err: unknown) => void;
+  // One record per AI call, for the stats endpoint.
+  onCall?: (call: CallRecord) => void;
+};
+
+export type CallRecord = {
+  at: number;
+  priority: number;
+  model: string;
+  langs: string[];
+  seqs: number[];
+  waitMs: number; // queued in our scheduler
+  firstTextMs: number | null; // from start of call
+  totalMs: number;
+  delivered: number;
+  failed: number;
+  outcome: "ok" | "error";
+  error?: string;
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -60,10 +77,10 @@ export class LessonTranslator {
   private pending: PendingSegment[] = [];
   private inFlight = 0;
   private history: PendingSegment[] = [];
-  private readonly d: Required<Omit<TranslatorDeps, "onLatency" | "onError">> & Pick<TranslatorDeps, "onLatency" | "onError">;
+  private readonly d: Required<Omit<TranslatorDeps, "onLatency" | "onError" | "onCall">> & Pick<TranslatorDeps, "onLatency" | "onError" | "onCall">;
 
   constructor(deps: TranslatorDeps) {
-    this.d = { now: Date.now, stallMs: 8000, maxMs: 30_000, maxLagMs: 20_000, maxBatch: 4, concurrency: 1, ...deps };
+    this.d = { now: Date.now, stallMs: 8000, maxMs: 15_000, maxLagMs: 20_000, maxBatch: 4, concurrency: 1, ...deps };
   }
 
   enqueue(seg: Omit<PendingSegment, "at"> & { at?: number }): void {
@@ -186,6 +203,10 @@ export class LessonTranslator {
       });
     };
 
+    const queuedAt = this.d.now();
+    let startedAt = queuedAt;
+    let firstTextAt: number | null = null;
+    let lastError: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
       fixes = new Map();
       const controller = new AbortController();
@@ -199,6 +220,7 @@ export class LessonTranslator {
         await this.d.schedule(priority, cost, async (schedulerSignal) => {
           schedulerSignal.addEventListener("abort", () => controller.abort(schedulerSignal.reason));
           // Timers start when the call starts, not while it waits its turn.
+          if (attempt === 0) startedAt = this.d.now();
           hardCap = setTimeout(() => controller.abort(new Error("too slow")), this.d.maxMs);
           armStall();
           await this.d.complete(model, {
@@ -206,6 +228,7 @@ export class LessonTranslator {
             signal: controller.signal,
             onText: (t) => {
               armStall();
+              firstTextAt ??= this.d.now();
               onText(t);
             },
           });
@@ -219,6 +242,7 @@ export class LessonTranslator {
           await new Promise((r) => setTimeout(r, 1500));
           continue;
         }
+        lastError = (err as Error).message;
         this.d.onError?.(err);
         break;
       } finally {
@@ -227,8 +251,10 @@ export class LessonTranslator {
       }
     }
 
+    let failed = 0;
     // Anything not delivered falls back to English on the phones.
     for (const seg of segs) {
+      failed += [...(needed.get(seg.seq) ?? [])].filter((lang) => !delivered.has(`${seg.seq}|${lang}`)).length;
       for (const lang of needed.get(seg.seq) ?? []) {
         if (!delivered.has(`${seg.seq}|${lang}`)) this.d.publish("translation-failed", { seq: seg.seq, lang, reason: "failed" }, { lang });
       }
@@ -238,5 +264,20 @@ export class LessonTranslator {
         this.d.saveFix(seg.id, fix).catch((err) => this.d.onError?.(err));
       }
     }
+    const end = this.d.now();
+    this.d.onCall?.({
+      at: queuedAt,
+      priority,
+      model,
+      langs: callLangs,
+      seqs: segs.map((x) => x.seq),
+      waitMs: startedAt - queuedAt,
+      firstTextMs: firstTextAt === null ? null : firstTextAt - startedAt,
+      totalMs: end - startedAt,
+      delivered: delivered.size,
+      failed,
+      outcome: lastError ? "error" : "ok",
+      error: lastError,
+    });
   }
 }

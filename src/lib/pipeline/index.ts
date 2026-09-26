@@ -12,7 +12,7 @@ import { GlossaryService, type GlossaryEntry } from "./glossary";
 import { Lru } from "./lru";
 import { pickModelFor } from "./routing";
 import { AiScheduler, PreemptedError } from "./scheduler";
-import { LessonTranslator } from "./translator";
+import { LessonTranslator, type CallRecord } from "./translator";
 
 // Connects the translation pipeline to the real world: the Featherless
 // client, the database, and the live event bus. Everything is one instance
@@ -24,6 +24,7 @@ const translators = singleton("translators", () => new Map<string, LessonTransla
 const latencies = singleton("latencies", () => new Map<string, number[]>());
 const jsonModeOff = singleton("jsonModeOff", () => new Set<string>());
 const backfilledAt = singleton("backfilledAt", () => new Map<string, number>());
+const calls = singleton("aiCalls", () => [] as (CallRecord & { lessonId: string })[]);
 
 let client: OpenAI | null = null;
 const ai = () => (client ??= createAiClient({ baseURL: env.aiBaseUrl, apiKey: env.aiApiKey, timeoutMs: 60_000 }));
@@ -118,6 +119,11 @@ async function translatorFor(lessonId: string): Promise<LessonTranslator | null>
       latencies.set(lessonId, list);
     },
     onError: (err) => log(lessonId, (err as Error).message),
+    onCall: (call) => {
+      calls.push({ ...call, lessonId });
+      if (calls.length > 300) calls.shift();
+      if (call.outcome === "error" || call.totalMs > 8000) log(lessonId, `slow/failed call ${JSON.stringify(call)}`);
+    },
   });
   translators.set(lessonId, t);
   return t;
@@ -201,4 +207,15 @@ export async function translateQuestion(text: string, lang: string, subject: str
     log("question", (err as Error).message);
     return null;
   }
+}
+
+// What the teacher-only stats endpoint reports: recent AI calls for this
+// lesson and the state of the shared scheduler.
+export function pipelineStats(lessonId: string) {
+  const mine = calls.filter((c) => c.lessonId === lessonId).slice(-30);
+  return {
+    translation: translationStats(lessonId),
+    scheduler: { inUse: scheduler.inUse, queued: scheduler.queued, running: scheduler.runningPriorities },
+    calls: mine.map((c) => ({ ...c, lessonId: undefined })),
+  };
 }

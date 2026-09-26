@@ -245,4 +245,19 @@ describe("LessonTranslator", () => {
     await tick();
     expect(h.calls.map((c) => c.model)).toEqual(["fast-model", "quality-model"]);
   });
+
+  it("reports each call's timing and outcome", async () => {
+    let now = 1000;
+    const records: import("./translator").CallRecord[] = [];
+    const h = harness({ now: () => now, onCall: (c) => void records.push(c) });
+    h.setLangs(["es"]);
+    h.t.enqueue({ id: "s1", seq: 1, text: "Hello." });
+    await tick();
+    now = 1400;
+    h.calls[0].push(reply(1, { es: { text: "Hola." } }));
+    now = 2200;
+    h.calls[0].finish();
+    await tick();
+    expect(records[0]).toMatchObject({ model: "fast-model", langs: ["es"], seqs: [1], waitMs: 0, firstTextMs: 400, totalMs: 1200, delivered: 1, failed: 0, outcome: "ok" });
+  });
 });
