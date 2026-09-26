@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildTranslationMessages, TRANSLATE_SYSTEM } from "./prompts";
+import { buildGlossaryMessages, buildTranslationMessages, GLOSSARY_SYSTEM, TRANSLATE_SYSTEM } from "./prompts";
 
 describe("buildTranslationMessages", () => {
   const msgs = buildTranslationMessages({
     subject: "Biology",
     title: "Photosynthesis",
-    keyTerms: ["photosynthesis", "ATP"],
+    keyTerms: ["photosynthesis", "ATP", "cell membrane"],
     context: ["Plants need light."],
     langs: ["es", "fa-AF"],
-    segments: [{ seq: 4, text: "The Calvin cycle uses ATP." }],
-    alreadyGlossed: { es: ["photosynthesis"] },
+    segments: [{ seq: 4, text: "The Calvin cycle uses ATP.", terms: ["ATP"] }],
   });
   const user = msgs[1].content;
 
@@ -17,23 +16,32 @@ describe("buildTranslationMessages", () => {
     expect(msgs[0]).toEqual({ role: "system", content: TRANSLATE_SYSTEM });
   });
 
-  it("includes subject, title and key terms", () => {
+  it("includes subject, title and the lesson's key terms", () => {
     expect(user).toContain("Subject: Biology");
     expect(user).toContain("Lesson: Photosynthesis");
-    expect(user).toContain("Key terms: photosynthesis, ATP");
+    expect(user).toContain("Lesson key terms: photosynthesis, ATP, cell membrane");
   });
 
   it("names the language variant, not just the code", () => {
-    expect(user).toContain("es: Latin American Spanish (already glossed: photosynthesis)");
+    expect(user).toContain("es: Latin American Spanish");
     expect(user).toContain("fa-AF: Dari (Afghan Persian, not Iranian Farsi)");
   });
 
-  it("passes context separately from the segments to translate", () => {
+  it("passes context separately and lists each segment's terms", () => {
     expect(user).toContain('context only, do not translate):\n"Plants need light."');
-    expect(user).toContain('[{"seq":4,"en":"The Calvin cycle uses ATP."}]');
+    expect(user).toContain('[{"seq":4,"en":"The Calvin cycle uses ATP.","terms":["ATP"]}]');
   });
 
   it("never contains anything but lesson text (no names, no ids)", () => {
     expect(user).not.toMatch(/nickname|student|participant/i);
+  });
+});
+
+describe("buildGlossaryMessages", () => {
+  it("asks for one language and lists the terms in order", () => {
+    const [sys, user] = buildGlossaryMessages({ subject: "Algebra 1", terms: ["slope", "y-intercept"], lang: "vi" });
+    expect(sys.content).toBe(GLOSSARY_SYSTEM);
+    expect(user.content).toContain("Student's language: Vietnamese (vi)");
+    expect(user.content).toContain('Terms: ["slope","y-intercept"]');
   });
 });

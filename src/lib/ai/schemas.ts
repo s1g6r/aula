@@ -3,12 +3,11 @@ import { z } from "zod";
 // Every AI response is untrusted text until it passes these schemas.
 // Anything that fails is dropped and the student sees the English fallback.
 
-// One highlighted academic term inside a translated line.
-//   en:    the term exactly as it appears in the English line
-//   tr:    the term exactly as it appears in the translated line
-//   gloss: a short, simple definition in the student's language. Omitted
-//          when the term was already glossed earlier in the lesson (we reuse
-//          the cached one), which keeps responses short and fast.
+// One highlighted key term inside a translated line.
+//   en:    the teacher's key term
+//   tr:    the words used for it in the translated line (so we can highlight it)
+//   gloss: a short, simple definition in the student's language. Live
+//          translations leave it out; it comes from the lesson glossary.
 export const TermGlossSchema = z.object({
   en: z.string().trim().min(1).max(80),
   tr: z.string().trim().min(1).max(80),
@@ -38,3 +37,10 @@ export type TermGloss = z.infer<typeof TermGlossSchema>;
 export type LangTranslation = z.infer<typeof LangTranslationSchema>;
 export type SegmentTranslation = z.infer<typeof SegmentTranslationSchema>;
 export type TranslationResponse = z.infer<typeof TranslationResponseSchema>;
+
+// Glossary reply: every key term with its translation and a definition.
+export const GlossaryResponseSchema = z.object({
+  terms: z.array(TermGlossSchema.required({ gloss: true })).min(1),
+});
+
+export type GlossaryResponse = z.infer<typeof GlossaryResponseSchema>;

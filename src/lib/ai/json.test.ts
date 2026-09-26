@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractJson, parseModelJson } from "./json";
+import { extractJson, parseModelJson, scanTranslationStream } from "./json";
 import { TranslationResponseSchema } from "./schemas";
 
 const good = {
@@ -69,5 +69,47 @@ describe("parseModelJson with the translation schema", () => {
   it("rejects terms missing their translated form", () => {
     const raw = JSON.stringify({ segments: [{ seq: 1, tr: { es: { text: "hola", terms: [{ en: "slope" }] } } }] });
     expect(parseModelJson(raw, TranslationResponseSchema).ok).toBe(false);
+  });
+});
+
+describe("scanTranslationStream", () => {
+  const full =
+    '{"segments":[{"seq":7,"fix":"the cell membrane","tr":{"es":{"text":"Dijo \\"hola\\" {no}","terms":[]},"ar":{"text":"مرحبا","terms":[{"en":"cell membrane","tr":"الغشاء","gloss":"x"}]}}}]}';
+
+  it("finds every finished language in a complete reply", () => {
+    const [s] = scanTranslationStream(full);
+    expect(s.seq).toBe(7);
+    expect(s.fix).toBe("the cell membrane");
+    expect(Object.keys(s.langs)).toEqual(["es", "ar"]);
+    expect(JSON.parse(s.langs.es).text).toBe('Dijo "hola" {no}');
+  });
+
+  it("reports Spanish as soon as it closes, while Arabic is still streaming", () => {
+    const cut = full.indexOf('"ar"') + 12;
+    const [s] = scanTranslationStream(full.slice(0, cut));
+    expect(Object.keys(s.langs)).toEqual(["es"]);
+    expect(s.ends.es).toBeLessThan(cut);
+  });
+
+  it("ignores braces and quotes inside strings", () => {
+    const [s] = scanTranslationStream(full);
+    expect(JSON.parse(s.langs.es)).toEqual({ text: 'Dijo "hola" {no}', terms: [] });
+  });
+
+  it("handles merged batches with several segments", () => {
+    const two = '{"segments":[{"seq":1,"tr":{"vi":{"text":"a"}}},{"seq":2,"tr":{"vi":{"text":"b"}}}]}';
+    const segs = scanTranslationStream(two);
+    expect(segs.map((s) => [s.seq, JSON.parse(s.langs.vi).text])).toEqual([[1, "a"], [2, "b"]]);
+  });
+
+  it("works with pretty-printed JSON and returns nothing for an empty start", () => {
+    const pretty = JSON.stringify(JSON.parse(full), null, 2);
+    expect(Object.keys(scanTranslationStream(pretty)[0].langs)).toEqual(["es", "ar"]);
+    expect(scanTranslationStream('{"segm')).toEqual([]);
+  });
+
+  it("waits for a number that may still be growing", () => {
+    expect(scanTranslationStream('{"segments":[{"seq":1')[0]).toBeUndefined();
+    expect(scanTranslationStream('{"segments":[{"seq":12,')[0].seq).toBe(12);
   });
 });
