@@ -21,6 +21,7 @@ const cache = singleton("translationCache", () => new Lru<string, LangTranslatio
 const translators = singleton("translators", () => new Map<string, LessonTranslator>());
 const latencies = singleton("latencies", () => new Map<string, number[]>());
 const jsonModeOff = singleton("jsonModeOff", () => new Set<string>());
+const backfilledAt = singleton("backfilledAt", () => new Map<string, number>());
 
 let client: OpenAI | null = null;
 const ai = () => (client ??= createAiClient({ baseURL: env.aiBaseUrl, apiKey: env.aiApiKey, timeoutMs: 60_000 }));
@@ -118,7 +119,12 @@ export async function languageJoined(lessonId: string, lang: string): Promise<vo
   const lesson = await getLesson(lessonId);
   if (!lesson || lesson.status !== "LIVE") return;
   void glossary.ensure(lesson, lang);
-  if (lang !== "en" && (bus.presence(lessonId).langs[lang] ?? 0) <= 1) {
+  // Only once per language every 10 minutes, so a phone that reconnects
+  // after a Wi-Fi blip doesn't trigger it again.
+  const key = `${lessonId}|${lang}`;
+  const recently = Date.now() - (backfilledAt.get(key) ?? 0) < 10 * 60_000;
+  if (lang !== "en" && !recently && (bus.presence(lessonId).langs[lang] ?? 0) <= 1) {
+    backfilledAt.set(key, Date.now());
     const t = await translatorFor(lessonId);
     void t?.backfill(lang).catch((err) => log("backfill", (err as Error).message));
   }
