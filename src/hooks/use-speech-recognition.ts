@@ -51,7 +51,21 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     try {
       const all = await navigator.mediaDevices.enumerateDevices();
       const inputs = all.filter((d) => d.kind === "audioinput" && d.deviceId !== "communications");
-      setDevices(inputs.map((d) => ({ id: d.deviceId, label: d.label || "Microphone" })));
+      setDevices(inputs.map((d, i) => ({ id: d.deviceId, label: d.label || `Microphone ${i + 1}` })));
+      // If the teacher hasn't chosen a mic and the system default is
+      // Bluetooth (often slow or silent in a browser), start with the
+      // built-in one. Labels are only visible once mic permission is granted.
+      let saved: string | null = null;
+      try {
+        saved = localStorage.getItem(MIC_KEY);
+      } catch {
+        saved = null;
+      }
+      const def = inputs.find((d) => d.deviceId === "default");
+      const builtIn = inputs.find((d) => d.deviceId !== "default" && /built-in|internal/i.test(d.label));
+      if (saved === null && def && /bluetooth|airpods|headset|hands-free/i.test(def.label) && builtIn) {
+        setDeviceIdState(builtIn.deviceId);
+      }
     } catch {
       setDevices([]);
     }
@@ -91,17 +105,32 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     setLevel(0);
   }
 
-  // Opens the chosen mic, or explains why it can't.
+  // Opens the chosen mic, or explains why it can't. Never waits forever:
+  // Bluetooth headphones can leave the request hanging while macOS tries to
+  // switch them into headset mode.
   const openMic = useCallback(
     async (id: string): Promise<MediaStreamTrack | null> => {
       stopStream();
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: id ? { deviceId: { exact: id } } : true });
+        const request = navigator.mediaDevices.getUserMedia({ audio: id ? { deviceId: { exact: id } } : true });
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new DOMException("microphone did not respond", "TimeoutError")), 8000);
+        });
+        // If it answers after we gave up, release it.
+        request.then((late) => wantOn.current || late.getTracks().forEach((t) => t.stop())).catch(() => {});
+        stream = await Promise.race([request, timeout]).finally(() => clearTimeout(timer));
       } catch (err) {
         const name = (err as DOMException).name;
         wantOn.current = false;
-        if (name === "NotAllowedError" || name === "SecurityError") {
+        void refreshDevices();
+        if (name === "TimeoutError") {
+          setStatus("no-mic");
+          setError(
+            "The microphone isn't responding. If Chrome is showing a permission prompt, allow it. With Bluetooth headphones like AirPods, pick your computer's built-in microphone below instead.",
+          );
+        } else if (name === "NotAllowedError" || name === "SecurityError") {
           setStatus("blocked");
           setError("Chrome isn't allowed to use the microphone. Click the mic icon in the address bar and choose Allow, or type below.");
         } else if (name === "NotFoundError") {
