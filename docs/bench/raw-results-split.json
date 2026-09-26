@@ -1,0 +1,242 @@
+{
+  "date": "2026-09-26T21:33:12.834Z",
+  "mode": "split",
+  "langs": [
+    "es",
+    "ar",
+    "zh-Hans",
+    "vi"
+  ],
+  "spotLangs": [
+    "ht",
+    "so",
+    "fa-AF"
+  ],
+  "judge": null,
+  "runs": [
+    {
+      "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "info": {
+        "id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+        "is_gated": false,
+        "created": 1772243677,
+        "model_class": "qwen3moe-30b",
+        "owned_by": "Feather",
+        "context_length": 262144,
+        "max_completion_tokens": 32768,
+        "concurrency_cost": 1,
+        "pricing": {
+          "prompt": "0.000000125",
+          "completion": "0.00000045",
+          "image": "0",
+          "request": "0",
+          "input": 0.125,
+          "output": 0.45
+        },
+        "features": {
+          "tool_use": true
+        }
+      },
+      "coldMs": 10717.42825,
+      "results": [
+        {
+          "id": 1,
+          "lesson": "Photosynthesis",
+          "english": "Okay everyone, today we're talking about photosynthesis, which is how plants make their own food.",
+          "retries429": 0,
+          "termRecall": 1,
+          "highlight": {
+            "ok": 4,
+            "total": 4
+          },
+          "ttftMs": 1714.9560000000001,
+          "langReadyMs": {
+            "es": 3971.6133340000015,
+            "ar": 7191.597667,
+            "zh-Hans": 9719.969000000001,
+            "vi": 11885.092417000002
+          },
+          "firstLangMs": 3971.6133340000015,
+          "ms": 11885.092417000002,
+          "status": "valid",
+          "seg": {
+            "seq": 1,
+            "fix": "Okay everyone, today we're talking about photosynthesis, which is how plants make their own food.",
+            "tr": {
+              "es": {
+                "text": "Bien, hoy hablaremos sobre la fotosíntesis, que es cómo las plantas hacen su propia comida.",
+                "terms": [
+                  {
+                    "en": "photosynthesis",
+                    "tr": "fotosíntesis"
+                  }
+                ]
+              },
+              "ar": {
+                "text": "حسنًا يا جماعة، اليوم نتحدث عن التمثيل الضوئي، وهو الطريقة التي تصنع بها النباتات طعامها الخاص.",
+                "terms": [
+                  {
+                    "en": "photosynthesis",
+                    "tr": "التمثيل الضوئي"
+                  }
+                ]
+              },
+              "zh-Hans": {
+                "text": "好的，大家今天我们要讲的是光合作用，这是植物自己制造食物的方式。",
+                "terms": [
+                  {
+                    "en": "photosynthesis",
+                    "tr": "光合作用"
+                  }
+                ]
+              },
+              "vi": {
+                "text": "Được rồi mọi người, hôm nay chúng ta sẽ nói về quang hợp, đó là cách cây trồng tự sản xuất thức ăn của chúng.",
+                "terms": [
+                  {
+                    "en": "photosynthesis",
+                    "tr": "quang hợp"
+                  }
+                ]
+              }
+            }
+          },
+          "completionTokens": 305,
+          "asrRepaired": false
+        },
+        {
+          "id": 2,
+          "lesson": "Photosynthesis",
+          "english": "Plants take in carbon dioxide from the air and water from the soil.",
+          "retries429": 0,
+          "termRecall": 1,
+          "highlight": {
+            "ok": 4,
+            "total": 4
+          },
+          "ttftMs": 421.2043330000015,
+          "langReadyMs": {
+            "es": 2495.7605000000003,
+            "ar": 5047.647333000001,
+            "zh-Hans": 7204.204208000003,
+            "vi": 8914.174125000001
+          },
+          "firstLangMs": 2495.7605000000003,
+          "ms": 8914.174125000001,
+          "status": "valid",
+          "seg": {
+            "seq": 2,
+            "fix": "Plants take in carbon dioxide from the air and water from the soil.",
+            "tr": {
+              "es": {
+                "text": "Las plantas absorben dióxido de carbono del aire y agua del suelo.",
+                "terms": [
+                  {
+                    "en": "carbon dioxide",
+                    "tr": "dióxido de carbono"
+                  }
+                ]
+              },
+              "ar": {
+                "text": "تستقبل النباتات ثاني أكسيد الكربون من الهواء والماء من التربة.",
+                "terms": [
+                  {
+                    "en": "carbon dioxide",
+                    "tr": "ثاني أكسيد الكربون"
+                  }
+                ]
+              },
+              "zh-Hans": {
+                "text": "植物从空气中吸收二氧化碳，从土壤中吸收水分。",
+                "terms": [
+                  {
+                    "en": "carbon dioxide",
+                    "tr": "二氧化碳"
+                  }
+                ]
+              },
+              "vi": {
+                "text": "Cây hấp thụ carbon dioxide từ không khí và nước từ đất.",
+                "terms": [
+                  {
+                    "en": "carbon dioxide",
+                    "tr": "carbon dioxide"
+                  }
+                ]
+              }
+            }
+          },
+          "completionTokens": 249,
+          "asrRepaired": false
+        },
+        {
+          "id": 3,
+          "lesson": "Photosynthesis",
+          "english": "Inside the leaf there are tiny structures called chloroplasts, and that's where it all happens.",
+          "retries429": 0,
+          "termRecall": 1,
+          "highlight": {
+            "ok": 4,
+            "total": 4
+          },
+          "ttftMs": 3241.2314159999987,
+          "langReadyMs": {
+            "es": 5001.058207999999,
+            "ar": 8004.685333000001,
+            "zh-Hans": 11323.638958000003,
+            "vi": 15095.762875
+          },
+          "firstLangMs": 5001.058207999999,
+          "ms": 15095.762875,
+          "status": "valid",
+          "seg": {
+            "seq": 3,
+            "tr": {
+              "es": {
+                "text": "Dentro de la hoja hay estructuras diminutas llamadas cloroplastos, y ahí es donde sucede todo.",
+                "terms": [
+                  {
+                    "en": "chloroplast",
+                    "tr": "cloroplastos"
+                  }
+                ]
+              },
+              "ar": {
+                "text": "داخل الورقة توجد هياكل صغيرة تُسمى البلاستيدات الخضراء، وهنا يحدث كل شيء.",
+                "terms": [
+                  {
+                    "en": "chloroplast",
+                    "tr": "البلاستيدات الخضراء"
+                  }
+                ]
+              },
+              "zh-Hans": {
+                "text": "叶子内部有称为叶绿体的微小结构，所有过程都在这里发生。",
+                "terms": [
+                  {
+                    "en": "chloroplast",
+                    "tr": "叶绿体"
+                  }
+                ]
+              },
+              "vi": {
+                "text": "Bên trong lá có những cấu trúc nhỏ gọi là lục lạp, và đó là nơi mọi thứ xảy ra.",
+                "terms": [
+                  {
+                    "en": "chloroplast",
+                    "tr": "lục lạp"
+                  }
+                ]
+              }
+            }
+          },
+          "completionTokens": 230,
+          "asrRepaired": false
+        }
+      ],
+      "spot": [],
+      "back": {},
+      "jsonMode": true
+    }
+  ]
+}
