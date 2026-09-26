@@ -164,3 +164,10 @@ If a student arrives reading a language nobody else is using, the last 3 lines a
 
 **End-to-end tests use a mock AI server, not test code inside the app.**
 `e2e/mock-ai.mjs` speaks the OpenAI streaming API and returns predictable "translations". It fails on `[fail]` and hangs on `[hang]`. The app runs unchanged against it, and the tests prove that a failure or a hang still leaves students with English, and that the next sentence recovers.
+
+**Model routing: Qwen for speed, Gemma for lower-resource languages.** (Chosen together after the benchmark.)
+Live captions use `Qwen3-30B-A3B` (2.3s to the first language). If a student reading Somali, Haitian Creole or Dari is in the room, that lesson's calls go to `gemma-4-26B-A4B`, because Qwen's Somali wasn't usable. Glossaries and recaps always use Gemma. The rule lives in `src/lib/pipeline/routing.ts` and reads the `beta` flag from the language list, so there's one source of truth.
+Rejected: Gemma everywhere (the 4th language in a room waited about 10.6s) and Qwen everywhere (fails the students who most need it).
+
+**One AI call in flight at a time, and captions preempt background work.**
+A real two-phone lesson found this. With two calls allowed at once, a caption call went to Featherless alongside a glossary call, sat in their queue with no output, hit our 8-second stall timeout, and was dropped. Our own priority queue can't reach requests already waiting on Featherless's side. So the scheduler now allows one call in flight (`AI_MAX_INFLIGHT=1`). If a caption is waiting while a background job (glossary, catch-up, warm-up) holds the slot, the background job is cancelled and retried later, and captions never are. Glossaries now run in chunks of 3 terms, so there's little to redo. After the fix: Spanish 2.3s and Arabic 3.3s median in a real lesson, with no dropped lines.

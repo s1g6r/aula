@@ -196,4 +196,23 @@ These judgments were made by Claude Code (the AI assistant building Aula) from t
 
 ## Decision
 
-_To be filled in together after reviewing the results above._
+**We route by language.** Chosen on Sep 26 after reviewing the results above.
+
+- **Live captions: `Qwen/Qwen3-30B-A3B-Instruct-2507`** (1 unit). It was the fastest (first language 2.3s median) with 100% valid JSON and good Spanish, Arabic, Chinese and Vietnamese.
+- **Somali, Haitian Creole and Dari: `google/gemma-4-26B-A4B-it`** (2 units). Qwen's Somali wasn't usable, and Gemma's was fluent. If any student in the room reads one of these "beta" languages, that lesson's translation calls go to Gemma (for every language in the call, so it stays one call).
+- **Glossaries and recaps: Gemma.** They run once and aren't time-critical, and Gemma completed 12 of 12 glossaries against Qwen's 8.
+
+Rejected: Gemma everywhere (best quality, but the 4th language in a room waited about 10.6s) and Qwen everywhere (fastest, but it failed the students who most need help).
+
+### Verified in a real lesson
+
+After choosing, we ran real lessons through the finished app (`e2e/real-ai.spec.ts`): a teacher, two phones, four Biology sentences about 5 seconds apart, timed from the teacher's screen to the phone's screen.
+
+| Room | Model used | 1st language (median) | 2nd language (median) |
+|---|---|---|---|
+| Spanish + Arabic | Qwen | 2.3s | 3.3s |
+| Spanish + Somali | Gemma | 3.3s | 6.8s |
+
+The first sentence of a lesson is slower (up to about 6s) because the model is still warming up. These times include the test's own polling, so the real numbers are a little lower.
+
+That run also caught a real bug: with two AI calls allowed in flight, a live caption could end up queued at Featherless behind a background glossary call, look "stalled", and be dropped. Aula now keeps one call in flight at a time and cancels background work (glossaries, warm-up) the moment a caption is waiting. See `DECISIONS.md`.
