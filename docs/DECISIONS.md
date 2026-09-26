@@ -64,3 +64,29 @@ We say "Latin American Spanish", "Brazilian Portuguese" and "Dari (Afghan Persia
 
 **The benchmark uses the production prompt and schema.**
 `scripts/bench-models.ts` imports the same `buildTranslationMessages` and zod schema the live pipeline will use, so the numbers describe what we ship. It measures latency (p50/p95), JSON validity, term recall, whether each term can be highlighted, and whether the ASR mistakes get repaired. To judge meaning in languages we don't read, a larger model translates each output back into English (a round-trip check).
+
+---
+
+## P1: Database schema (Sep 26)
+
+**Everything hangs off Lesson, with cascading deletes.**
+Deleting a lesson (by the teacher, or by the 30-day auto-delete) removes every transcript line, translation, glossary entry, signal, question, flag and recap in one database operation. A test proves it, so "the teacher can delete everything" is a checked fact, not just a promise.
+
+**Students are anonymous Participants with a secret token.**
+When a student joins, their browser gets a random token and the database stores only its SHA-256 hash. That's enough to recognize "the same student" for rate limits, mute and flags, without accounts or emails. Nicknames are shown only to the teacher and never sent to the AI.
+
+**Public recap links use unguessable ids.**
+`/r/<id>` is shareable without a login, so recap ids are cuid2 values (24 random-looking characters), not counting numbers someone could step through.
+
+**Signals store the caption line (`seq`) the student was on.**
+That's what lets the teacher's screen say "3 students lost at: '...the Calvin cycle uses ATP...'" and lets the review timeline mark the exact moment. `seq` can be empty if a student taps before the teacher has said anything.
+
+**Glossary cache as a table (`Term`), translation cache in memory.**
+A term's definition must stay the same every time it appears in a lesson, and it has to survive a server restart mid-lesson, so it lives in the database. Whole-sentence translations depend on context, so the cache for them (P3) is a small in-memory store for repeated phrases like "any questions?".
+Rejected: a database table for sentence translations. Hits would be rare because the same sentence in different context can translate differently.
+
+**Recap progress lives on the lesson (`recapStatus`).**
+NONE, then GENERATING, then READY or FAILED. Every screen can show the right state ("building your recap...", "recap ready", "couldn't build the recap, try again") without guessing.
+
+**Tests use their own database.**
+DB tests run against `aula_test`, never the dev database. The test setup refuses any URL without "test" in the database name, and applies migrations before the tests run.

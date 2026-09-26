@@ -17,6 +17,10 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the project scaffold and tooling config (`npm run check`, Vitest, Playwright, env template), the language list, the translation prompt, the zod schemas that validate AI output, the JSON extraction helper, the benchmark script with its 20 test sentences, and the unit tests.
 - **I decided / changed:** _(fill in: e.g. which benchmark sentences to keep, which model we picked and why)_
 
+### P1: Database schema (Sep 26)
+- **Claude Code generated:** the Prisma schema (11 tables), the first migration, the seed script, and a test that deleting a lesson deletes all of its data.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula
