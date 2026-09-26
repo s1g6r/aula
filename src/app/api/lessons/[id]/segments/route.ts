@@ -2,11 +2,13 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { bus } from "@/lib/realtime/bus";
 import { jsonError, readJson } from "@/lib/server/http";
+import { translateSegment } from "@/lib/pipeline";
 import { nextSeq, requireTeacherLesson } from "@/lib/server/lessons";
 
 // POST /api/lessons/:id/segments { text, startedAt }
 // A finished sentence from the teacher (from speech recognition or typed).
-// Saved, then broadcast in English right away. Translation follows (P3).
+// Saved, then broadcast in English right away. Translations for the
+// languages in the room follow, streamed in as each one is ready.
 
 const Body = z.object({
   text: z.string().trim().min(1).max(2000),
@@ -27,7 +29,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/lessons/[id
   const claimed = body.data.startedAt ? new Date(body.data.startedAt) : now;
   const startedAt = Math.abs(claimed.getTime() - now.getTime()) > 120_000 ? now : claimed;
 
-  await db.segment.create({ data: { lessonId: id, seq, text: body.data.text, startedAt } });
+  const segment = await db.segment.create({ data: { lessonId: id, seq, text: body.data.text, startedAt }, select: { id: true } });
   bus.publish(id, "segment", { seq, text: body.data.text, startedAt: startedAt.toISOString() });
+  void translateSegment(id, { id: segment.id, seq, text: body.data.text });
   return Response.json({ seq });
 }

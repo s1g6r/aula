@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { currentTeacher } from "@/auth";
+import { warmUp } from "@/lib/pipeline";
 import { parseKeyTerms } from "@/lib/terms";
 import { createLesson } from "@/lib/server/lessons";
 
@@ -26,5 +27,6 @@ export async function createLessonAction(_prev: CreateLessonState, formData: For
     subject: parsed.data.subject,
     keyTerms: parseKeyTerms(parsed.data.keyTerms ?? ""),
   });
+  warmUp();
   redirect(`/teach/${lesson.id}`);
 }

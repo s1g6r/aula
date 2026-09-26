@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { currentTeacher } from "@/auth";
+import { languageJoined } from "@/lib/pipeline";
 import { bus, type StoredEvent, type Subscriber } from "@/lib/realtime/bus";
 import { encodeEvent } from "@/lib/realtime/sse";
 import { jsonError } from "@/lib/server/http";
@@ -80,7 +81,10 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/lessons/
       }
       ready = true;
       for (const e of pending) write(encodeEvent(e));
-      if (who.role === "student") void publishRoom(id);
+      if (who.role === "student") {
+        void publishRoom(id);
+        void languageJoined(id, who.lang!);
+      }
     },
     cancel() {
       close();

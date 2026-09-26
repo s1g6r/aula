@@ -31,8 +31,9 @@ type SnapshotSegment = {
 // Everything a screen needs to draw the lesson from scratch: sent on first
 // connect, and on reconnect when the missed events are no longer buffered.
 export async function studentSnapshot(lessonId: string, lang: string) {
-  const [lesson, segments] = await Promise.all([
+  const [lesson, glossary, segments] = await Promise.all([
     getLesson(lessonId),
+    db.term.findMany({ where: { lessonId, lang }, select: { en: true, tr: true, gloss: true } }),
     db.segment.findMany({
       where: { lessonId },
       orderBy: { seq: "asc" },
@@ -47,6 +48,7 @@ export async function studentSnapshot(lessonId: string, lang: string) {
   ]);
   return {
     ended: lesson?.status === "ENDED",
+    glossary,
     segments: segments.map((s): SnapshotSegment => ({
       seq: s.seq,
       text: s.text,
