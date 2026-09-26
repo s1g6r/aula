@@ -62,7 +62,9 @@ export type GlossaryRequest = {
   subject?: string;
   title?: string;
   terms: string[];
-  lang: LanguageCode;
+  // A launch language, or "en" for simple English definitions (students who
+  // read the captions in English are learning the words too).
+  lang: LanguageCode | "en";
 };
 
 export const GLOSSARY_SYSTEM = `You write a student glossary for newcomer English learners. For each English academic term, give its usual translation and one short, simple definition in the student's language, as it is meant in this lesson's subject.
@@ -78,7 +80,8 @@ export function buildGlossaryMessages(req: GlossaryRequest): ChatMessage[] {
   const lines: string[] = [];
   if (req.subject) lines.push(`Subject: ${req.subject}`);
   if (req.title) lines.push(`Lesson: ${req.title}`);
-  lines.push(`Student's language: ${getLanguage(req.lang)?.promptName ?? req.lang} (${req.lang})`);
+  const langName = req.lang === "en" ? "simple English for English learners" : (getLanguage(req.lang)?.promptName ?? req.lang);
+  lines.push(`Student's language: ${langName} (${req.lang})`);
   lines.push(`Terms: ${JSON.stringify(req.terms)}`);
   return [
     { role: "system", content: GLOSSARY_SYSTEM },
