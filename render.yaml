@@ -1,0 +1,58 @@
+# Render Blueprint for Aula: one free Node web service and one free Postgres.
+# In Render: New > Blueprint > pick this repo. It asks once for AI_API_KEY.
+# Step-by-step guide: docs/DEPLOY.md
+
+services:
+  - type: web
+    name: aula
+    runtime: node
+    plan: free
+    region: virginia
+    # Dev dependencies are needed at build (TypeScript, Tailwind) and at
+    # start (the Prisma CLI applies migrations).
+    buildCommand: npm ci --include=dev && npm run build
+    # Apply any new database migrations, then start the Next.js server.
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aula-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: AI_BASE_URL
+        value: https://api.featherless.ai/v1
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL_TRANSLATE
+        value: Qwen/Qwen3-30B-A3B-Instruct-2507
+      - key: AI_MODEL_QUALITY
+        value: google/gemma-4-26B-A4B-it
+      - key: AI_MODEL_RECAP
+        value: google/gemma-4-26B-A4B-it
+      - key: AI_CONCURRENCY_UNITS
+        value: "4"
+      - key: AI_MAX_INFLIGHT
+        value: "1"
+      - key: AI_TRANSLATE_COST
+        value: "1"
+      - key: AI_QUALITY_COST
+        value: "2"
+      - key: AI_RECAP_COST
+        value: "2"
+      - key: DATA_RETENTION_DAYS
+        value: "30"
+      - key: GUEST_LESSON_TTL_HOURS
+        value: "24"
+
+databases:
+  - name: aula-db
+    plan: free
+    region: virginia
+    databaseName: aula
+    user: aula
+    postgresMajorVersion: "17"

@@ -16,7 +16,8 @@
     "db:seed": "tsx --env-file-if-exists=.env.local prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "bench": "tsx --env-file=.env.local scripts/bench-models.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "start:prod": "prisma migrate deploy && next start"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
