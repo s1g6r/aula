@@ -1,7 +1,7 @@
 import { devices, expect, type Browser, type Page } from "@playwright/test";
 
 export async function startGuestLesson(browser: Browser): Promise<{ page: Page; code: string }> {
-  const ctx = await browser.newContext();
+  const ctx = await browser.newContext({ permissions: ["microphone"] });
   const page = await ctx.newPage();
   await page.goto("/");
   await page.getByRole("button", { name: "Try it live" }).click();
