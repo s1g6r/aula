@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { highlightable, percentile, termRecall, termsInSentence } from "./metrics";
+import { highlightable, percentile, termRecall } from "./metrics";
 
 describe("bench metrics", () => {
   it("percentile uses nearest-rank", () => {
@@ -7,11 +7,6 @@ describe("bench metrics", () => {
     expect(percentile(xs, 50)).toBe(500);
     expect(percentile(xs, 95)).toBe(1000);
     expect(percentile([], 50)).toBeNaN();
-  });
-
-  it("finds key terms tolerant of plurals and hyphens", () => {
-    expect(termsInSentence("Tiny structures called chloroplasts.", ["chloroplast", "ATP"])).toEqual(["chloroplast"]);
-    expect(termsInSentence("The y intercept is at -3.", ["y-intercept"])).toEqual(["y-intercept"]);
   });
 
   it("measures recall and highlightability per language", () => {

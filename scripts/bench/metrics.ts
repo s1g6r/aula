@@ -9,13 +9,6 @@ export function percentile(values: number[], p: number): number {
 
 const norm = (s: string) => s.toLowerCase().replace(/[-\s]+/g, " ").trim();
 
-// Key terms the sentence actually contains (plural and hyphen tolerant).
-// Uses the corrected phrase for sentences with a deliberate ASR mistake.
-export function termsInSentence(sentence: string, keyTerms: string[]): string[] {
-  const s = norm(sentence);
-  return keyTerms.filter((t) => s.includes(norm(t)));
-}
-
 // Share of expected key terms the model returned, per language.
 export function termRecall(expected: string[], seg: SegmentTranslation, langs: string[]): number {
   if (expected.length === 0) return NaN;
