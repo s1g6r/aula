@@ -38,7 +38,8 @@ interface SpeechRecognition extends EventTarget {
   onerror: ((ev: SpeechRecognitionErrorEvent) => void) | null;
   onend: ((ev: Event) => void) | null;
   onstart: ((ev: Event) => void) | null;
-  start(): void;
+  // Chrome 135+ accepts the audio track to listen to (lets us pick the mic).
+  start(audioTrack?: MediaStreamTrack): void;
   stop(): void;
   abort(): void;
 }

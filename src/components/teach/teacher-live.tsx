@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLessonStream, type StreamEvent } from "@/hooks/use-lesson-stream";
-import { useSpeechRecognition, type SpeechStatus } from "@/hooks/use-speech-recognition";
+import { useSpeechRecognition, type MicDevice, type SpeechStatus } from "@/hooks/use-speech-recognition";
 import { applyCaptionEvent, emptyCaptions, type CaptionEvent } from "@/lib/captions";
 import { getLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
@@ -161,7 +161,17 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
           <Transcript lines={captions.lines} sending={sending} interim={interim} ended={captions.ended} />
           {live && (
             <div className="border-t p-4">
-              <MicControl status={speech.status} mode={speech.mode} error={speech.error} onStart={speech.start} onStop={speech.stop} />
+              <MicControl
+                status={speech.status}
+                mode={speech.mode}
+                error={speech.error}
+                onStart={speech.start}
+                onStop={speech.stop}
+                devices={speech.devices}
+                deviceId={speech.deviceId}
+                onDevice={speech.setDeviceId}
+                level={speech.level}
+              />
               <form onSubmit={submitTyped} className="mt-3 flex gap-2">
                 <label htmlFor="typed" className="sr-only">
                   Type a sentence to send to students
@@ -296,8 +306,22 @@ const STATUS_TEXT: Record<SpeechStatus, string> = {
   error: "Microphone stopped",
 };
 
-function MicControl(props: { status: SpeechStatus; mode: "on-device" | "cloud" | null; error: string | null; onStart: () => void; onStop: () => void }) {
-  const { status, mode, error } = props;
+type MicControlProps = {
+  status: SpeechStatus;
+  mode: "on-device" | "cloud" | null;
+  error: string | null;
+  onStart: () => void;
+  onStop: () => void;
+  devices: MicDevice[];
+  deviceId: string;
+  onDevice: (id: string) => void;
+  level: number;
+};
+
+function MicControl(props: MicControlProps) {
+  const { status, mode, error, devices, deviceId, level } = props;
+  // "default" duplicates one of the real devices; show it as "System default".
+  const choices = devices.filter((d) => d.id !== "default");
   const on = status === "listening" || status === "starting";
   if (status === "unsupported") {
     return (
@@ -312,7 +336,7 @@ function MicControl(props: { status: SpeechStatus; mode: "on-device" | "cloud" |
         {on ? <MicOff aria-hidden /> : <Mic aria-hidden />}
         {on ? "Pause" : "Start listening"}
       </Button>
-      <div className="min-w-0 text-sm" aria-live="polite">
+      <div className="min-w-0 flex-1 text-sm" aria-live="polite">
         <p className="flex items-center gap-2 font-medium">
           <span
             aria-hidden
@@ -325,6 +349,40 @@ function MicControl(props: { status: SpeechStatus; mode: "on-device" | "cloud" |
         </p>
         {error && <p className="mt-0.5 text-ink-2">{error}</p>}
       </div>
+      {on && <LevelMeter level={level} />}
+      <div className="flex w-full items-center gap-2 text-sm">
+        <label htmlFor="mic-select" className="shrink-0 text-ink-2">
+          Microphone
+        </label>
+        <select
+          id="mic-select"
+          value={deviceId}
+          onChange={(e) => props.onDevice(e.target.value)}
+          className="h-8 min-w-0 flex-1 truncate rounded-md border border-input bg-card px-2 text-sm focus-visible:ring-3 focus-visible:ring-coral/30 focus-visible:outline-none sm:max-w-xs"
+        >
+          <option value="">System default</option>
+          {choices.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+// Five bars that light up with the teacher's voice, so they can see Aula hears them.
+function LevelMeter({ level }: { level: number }) {
+  return (
+    <div className="flex h-6 items-end gap-0.5" aria-hidden title="Microphone level">
+      {[0.08, 0.2, 0.35, 0.5, 0.7].map((threshold, i) => (
+        <span
+          key={i}
+          className={cn("w-1.5 rounded-sm transition-colors", level > threshold ? "bg-sage" : "bg-ink/15")}
+          style={{ height: `${30 + i * 17}%` }}
+        />
+      ))}
     </div>
   );
 }
