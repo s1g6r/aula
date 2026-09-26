@@ -14,7 +14,7 @@ export default async function StudentLessonPage(props: PageProps<"/l/[code]">) {
   if (!me) redirect(`/join/${lesson.code}`);
   return (
     <StudentLive
-      lesson={{ id: lesson.id, code: lesson.code, title: lesson.title, subject: lesson.subject, status: lesson.status }}
+      lesson={{ id: lesson.id, code: lesson.code, title: lesson.title, subject: lesson.subject, status: lesson.status, keyTerms: lesson.keyTerms }}
       me={{ nickname: me.nickname, lang: me.lang }}
     />
   );

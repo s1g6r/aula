@@ -43,3 +43,8 @@ export function parseKeyTerms(input: string): string[] {
   }
   return out;
 }
+
+// Stable lookup key for a term ("Calvin cycle", "calvin-cycle" -> "calvin cycle").
+export function termKey(term: string): string {
+  return normalize(term);
+}

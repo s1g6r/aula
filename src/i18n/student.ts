@@ -15,6 +15,12 @@ export const STUDENT_STRINGS_EN = {
   newLines: "New lines",
   teacherSpeaking: "Your teacher is saying:",
   english: "English",
+  hearIt: "Hear it",
+  definitionComing: "The definition is on its way...",
+  savedToWords: "Saved to My words",
+  settings: "Settings",
+  showEnglish: "Show the English under each line",
+  showEnglishHelp: "Reading both helps you learn the English words.",
 };
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;
