@@ -3,6 +3,9 @@ import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
 
 // P4: "I'm lost" / "Slower" reach the teacher as anonymous counts anchored
 // to a sentence, and questions in any language reach the teacher in English.
+// Runs against the mock AI locally and the real one in production (BASE_URL).
+
+const mockAi = !process.env.BASE_URL;
 
 test("lost and slower signals show up as counts on the right sentence", async ({ browser }) => {
   const { page: teacher, code } = await startGuestLesson(browser);
@@ -11,8 +14,8 @@ test("lost and slower signals show up as counts on the right sentence", async ({
 
   await say(teacher, "Photosynthesis happens in the chloroplast.");
   await say(teacher, "Then the Calvin cycle uses that ATP to make glucose.");
-  await expect(captions(ana).getByText("es: Then the Calvin cycle uses that ATP to make glucose.")).toBeVisible({ timeout: 5000 });
-  await expect(captions(omar).getByText("ar: Then the Calvin cycle uses that ATP to make glucose.")).toBeVisible({ timeout: 5000 });
+  await expect(captions(ana).getByText("Then the Calvin cycle uses that ATP to make glucose.").first()).toBeVisible({ timeout: 15_000 });
+  await expect(captions(omar).getByText("Then the Calvin cycle uses that ATP to make glucose.").first()).toBeVisible({ timeout: 15_000 });
 
   const pulse = teacher.getByRole("region", { name: /Understanding/ });
   await expect(pulse).toContainText("No signals right now");
@@ -47,7 +50,8 @@ test("a question in Spanish reaches the teacher in English and can be answered",
   await ana.getByRole("button", { name: "Send" }).click();
   await expect(ana.getByRole("dialog").getByText("Sent")).toBeVisible();
 
-  await expect(panel.getByText("EN: ¿Qué es el ATP?")).toBeVisible({ timeout: 5000 });
+  const english = mockAi ? panel.getByText("EN: ¿Qué es el ATP?") : panel.getByText(/what is (the )?ATP/i);
+  await expect(english).toBeVisible({ timeout: 15_000 });
   await expect(panel.locator("p[lang=es]", { hasText: "¿Qué es el ATP?" })).toBeVisible();
   await expect(panel).toContainText("Ana · Spanish");
 
@@ -59,11 +63,11 @@ test("a question in Spanish reaches the teacher in English and can be answered",
   await omar.getByRole("textbox", { name: "Ask your teacher" }).fill("this class is shit");
   await omar.getByRole("button", { name: "Send" }).click();
   await expect(omar.getByRole("dialog").getByText("Sent")).toBeVisible();
-  await teacher.waitForTimeout(1000);
+  await teacher.waitForTimeout(mockAi ? 1000 : 8000);
   await expect(panel).not.toContainText("shit");
 
   // Muting hides a student's questions.
   await panel.getByRole("button", { name: "Mute" }).click();
   await panel.getByRole("button", { name: "Hide all from Ana?" }).click();
-  await expect(panel.getByText("EN: ¿Qué es el ATP?")).toHaveCount(0, { timeout: 5000 });
+  await expect(english).toHaveCount(0, { timeout: 5000 });
 });

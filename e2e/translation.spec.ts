@@ -3,7 +3,9 @@ import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
 
 // P3: translations stream to each phone in its own language, key terms are
 // highlighted and tappable, and AI problems fall back to English.
-// The AI here is e2e/mock-ai.mjs, which "translates" to "<lang>: <English>".
+// The AI here is e2e/mock-ai.mjs, which "translates" to "<lang>: <English>",
+// so these run locally only (real-ai.spec.ts covers the real model).
+test.skip(Boolean(process.env.BASE_URL), "needs the mock AI");
 
 test("each phone gets its own language, with tappable key terms", async ({ browser }) => {
   const { page: teacher, code } = await startGuestLesson(browser);
