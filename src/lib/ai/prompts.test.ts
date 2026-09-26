@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGlossaryMessages, buildTranslationMessages, GLOSSARY_SYSTEM, TRANSLATE_SYSTEM } from "./prompts";
+import { buildGlossaryMessages, buildQuestionMessages, buildTranslationMessages, GLOSSARY_SYSTEM, TRANSLATE_SYSTEM } from "./prompts";
 
 describe("buildTranslationMessages", () => {
   const msgs = buildTranslationMessages({
@@ -43,5 +43,14 @@ describe("buildGlossaryMessages", () => {
     expect(sys.content).toBe(GLOSSARY_SYSTEM);
     expect(user.content).toContain("Student's language: Vietnamese (vi)");
     expect(user.content).toContain('Terms: ["slope","y-intercept"]');
+  });
+});
+
+describe("buildQuestionMessages", () => {
+  it("tells the model to translate only, never answer", () => {
+    const [sys, user] = buildQuestionMessages({ text: "¿Qué es el ATP?", lang: "es", subject: "Biology" });
+    expect(sys.content).toMatch(/Never answer the question/);
+    expect(user.content).toContain("Student's language: Latin American Spanish");
+    expect(user.content).toContain('Message: "¿Qué es el ATP?"');
   });
 });

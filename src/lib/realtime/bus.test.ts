@@ -77,4 +77,15 @@ describe("Bus", () => {
     expect(bus.presence("L").students).toBe(2);
     expect(bus.activeLangs("L")).toEqual(["ar"]);
   });
+
+  it("can address one student privately", () => {
+    const bus = new Bus("ep");
+    const me = collect();
+    const other = collect();
+    bus.subscribe("L", { role: "student", lang: "es", participantId: "p1", send: me.send });
+    bus.subscribe("L", { role: "student", lang: "es", participantId: "p2", send: other.send });
+    bus.publish("L", "question-status", { id: "q1" }, { participantId: "p1" });
+    expect(me.got.map((e) => e.type)).toEqual(["question-status"]);
+    expect(other.got).toEqual([]);
+  });
 });

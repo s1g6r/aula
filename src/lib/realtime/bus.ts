@@ -12,7 +12,7 @@
 // Scaling to several server instances would move this to Redis pub/sub; see
 // docs/ARCHITECTURE.md.
 
-export type Audience = "all" | "teacher" | "students" | { lang: string };
+export type Audience = "all" | "teacher" | "students" | { lang: string } | { participantId: string };
 
 export type StoredEvent = {
   id: string | null; // null = ephemeral (interim text): not buffered, not replayed
@@ -38,10 +38,11 @@ type Channel = {
   recentlyLeft: Map<string, { lang: string; until: number }>;
 };
 
-export function matchesAudience(audience: Audience, sub: Pick<Subscriber, "role" | "lang">): boolean {
+export function matchesAudience(audience: Audience, sub: Pick<Subscriber, "role" | "lang" | "participantId">): boolean {
   if (audience === "all") return true;
   if (audience === "teacher") return sub.role === "teacher";
   if (audience === "students") return sub.role === "student";
+  if ("participantId" in audience) return sub.role === "student" && sub.participantId === audience.participantId;
   return sub.role === "student" && sub.lang === audience.lang;
 }
 
@@ -102,7 +103,7 @@ export class Bus {
   // Events after `lastEventId` that this subscriber should see, or null when
   // they can't be replayed (unknown id, server restarted, or the gap is older
   // than the buffer) and the caller must send a snapshot instead.
-  replaySince(lessonId: string, lastEventId: string, sub: Pick<Subscriber, "role" | "lang">, upToN?: number): StoredEvent[] | null {
+  replaySince(lessonId: string, lastEventId: string, sub: Pick<Subscriber, "role" | "lang" | "participantId">, upToN?: number): StoredEvent[] | null {
     const [epoch, nStr] = lastEventId.split("-");
     const lastN = Number(nStr);
     if (epoch !== this.epoch || !Number.isInteger(lastN)) return null;

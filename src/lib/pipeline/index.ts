@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import { chatComplete, createAiClient } from "@/lib/ai/client";
-import type { ChatMessage } from "@/lib/ai/prompts";
-import type { LangTranslation } from "@/lib/ai/schemas";
+import { parseModelJson } from "@/lib/ai/json";
+import { buildQuestionMessages, type ChatMessage } from "@/lib/ai/prompts";
+import { QuestionTranslationSchema, type LangTranslation } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { bus } from "@/lib/realtime/bus";
 import { env } from "@/lib/server/env";
@@ -182,4 +183,22 @@ export function translationStats(lessonId: string): { p50: number | null; count:
 export function forgetLessonPipeline(lessonId: string): void {
   translators.delete(lessonId);
   latencies.delete(lessonId);
+}
+
+// A student's question, into English for the teacher. Runs with live-caption
+// priority (a question is time-sensitive) and a 12-second limit. Returns null
+// if it can't be translated; the teacher then sees the original.
+export async function translateQuestion(text: string, lang: string, subject: string | null): Promise<string | null> {
+  if (!aiEnabled()) return null;
+  const { model, cost } = pickModel([lang]);
+  try {
+    const reply = await schedule(0, cost, (signal) =>
+      complete(model, { messages: buildQuestionMessages({ text, lang, subject: subject ?? undefined }), signal: AbortSignal.any([signal, AbortSignal.timeout(12_000)]), onText: () => {} }, 400),
+    );
+    const parsed = parseModelJson(reply, QuestionTranslationSchema);
+    return parsed.ok ? parsed.data.en : null;
+  } catch (err) {
+    log("question", (err as Error).message);
+    return null;
+  }
 }

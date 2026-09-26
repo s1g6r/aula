@@ -3,6 +3,7 @@ import { generateCode } from "@/lib/codes";
 import { db } from "@/lib/db";
 import { env } from "./env";
 import { jsonError } from "./http";
+import { currentParticipant, type ParticipantInfo } from "./participants";
 import { singleton } from "./singleton";
 
 // Lesson facts that every live request needs (who owns it, is it live, key
@@ -104,4 +105,13 @@ export async function requireTeacherLesson(lessonId: string): Promise<{ lesson: 
   if (!teacher) return { error: jsonError(401, "Sign in first") };
   if (!lesson || lesson.teacherId !== teacher.id) return { error: jsonError(404, "Lesson not found") };
   return { lesson };
+}
+
+// For student API routes: the live lesson, and the student in this browser.
+export async function requireStudentLesson(lessonId: string): Promise<{ lesson: LessonMeta; student: ParticipantInfo } | { error: Response }> {
+  const [lesson, student] = await Promise.all([getLesson(lessonId), currentParticipant(lessonId)]);
+  if (!lesson) return { error: jsonError(404, "Lesson not found") };
+  if (!student) return { error: jsonError(401, "Join the lesson first") };
+  if (lesson.status !== "LIVE") return { error: jsonError(409, "Lesson has ended") };
+  return { lesson, student };
 }

@@ -44,3 +44,5 @@ export const GlossaryResponseSchema = z.object({
 });
 
 export type GlossaryResponse = z.infer<typeof GlossaryResponseSchema>;
+
+export const QuestionTranslationSchema = z.object({ en: z.string().trim().min(1).max(1000) });

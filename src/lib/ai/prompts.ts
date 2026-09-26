@@ -88,3 +88,22 @@ export function buildGlossaryMessages(req: GlossaryRequest): ChatMessage[] {
     { role: "user", content: lines.join("\n\n") },
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Student questions: a student types in their own language; the teacher
+// reads it in English. The model only translates. The teacher answers.
+
+export const QUESTION_SYSTEM = `A student typed a question or comment for their teacher, possibly in another language. Translate it into clear, natural English for the teacher.
+
+Rules:
+1. Only translate. Never answer the question, never add advice, and never add anything that isn't in the student's message.
+2. If it's already English, return it with spelling fixed.
+3. Reply with minified JSON only, in exactly this shape: {"en":"<English>"}`;
+
+export function buildQuestionMessages(req: { text: string; lang: string; subject?: string }): ChatMessage[] {
+  const langName = req.lang === "en" ? "English" : (getLanguage(req.lang)?.promptName ?? req.lang);
+  return [
+    { role: "system", content: QUESTION_SYSTEM },
+    { role: "user", content: `${req.subject ? `Class subject: ${req.subject}\n` : ""}Student's language: ${langName}\nMessage: ${JSON.stringify(req.text)}` },
+  ];
+}
