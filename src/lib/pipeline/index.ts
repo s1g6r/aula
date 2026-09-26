@@ -9,14 +9,15 @@ import { getLesson } from "@/lib/server/lessons";
 import { singleton } from "@/lib/server/singleton";
 import { GlossaryService, type GlossaryEntry } from "./glossary";
 import { Lru } from "./lru";
-import { AiScheduler } from "./scheduler";
+import { pickModelFor } from "./routing";
+import { AiScheduler, PreemptedError } from "./scheduler";
 import { LessonTranslator } from "./translator";
 
 // Connects the translation pipeline to the real world: the Featherless
 // client, the database, and the live event bus. Everything is one instance
 // per server process.
 
-const scheduler = singleton("aiScheduler", () => new AiScheduler(env.aiConcurrencyUnits));
+const scheduler = singleton("aiScheduler", () => new AiScheduler(env.aiConcurrencyUnits, env.aiMaxInflight));
 const cache = singleton("translationCache", () => new Lru<string, LangTranslation>(2000));
 const translators = singleton("translators", () => new Map<string, LessonTranslator>());
 const latencies = singleton("latencies", () => new Map<string, number[]>());
@@ -46,14 +47,35 @@ async function complete(model: string, args: { messages: ChatMessage[]; signal: 
   }
 }
 
-const schedule = <T>(priority: number, fn: () => Promise<T>) => scheduler.run({ cost: env.aiTranslateCost, priority }, fn);
+// Live captions (priority 0) are never preempted; everything else is
+// background work that yields to them. Long waits are logged, so a caption
+// stuck behind something is visible in the server log.
+const schedule = <T>(priority: number, cost: number, fn: (signal: AbortSignal) => Promise<T>) => {
+  const queuedAt = Date.now();
+  return scheduler.run({ cost, priority, preemptible: priority > 0 }, (signal) => {
+    const waited = Date.now() - queuedAt;
+    if (priority === 0 && waited > 2000) log(`caption waited ${waited}ms for an AI slot`);
+    return fn(signal);
+  });
+};
+
+const pickModel = (langs: string[]) =>
+  pickModelFor(langs, {
+    fast: { model: env.aiModelTranslate, cost: env.aiTranslateCost },
+    quality: { model: env.aiModelQuality, cost: env.aiQualityCost },
+  });
 
 const glossary = singleton(
   "glossary",
   () =>
     new GlossaryService({
-      complete: (args) => complete(env.aiModelTranslate, args, 1500),
-      schedule,
+      // Glossaries run once per language and aren't time-critical, so they
+      // always use the stronger model (it completed 12/12 in the benchmark).
+      complete: (args) => complete(env.aiModelQuality, args, 1500),
+      schedule: (priority, fn) => schedule(priority, env.aiQualityCost, fn),
+      isPreempted: (err) => err instanceof PreemptedError,
+      // Small chunks, so a live caption never waits long behind a glossary call.
+      chunkSize: 3,
       load: async (lessonId, lang) => db.term.findMany({ where: { lessonId, lang }, select: { en: true, tr: true, gloss: true } }),
       save: async (lessonId, lang, entries) => {
         await db.term.createMany({ data: entries.map((e) => ({ lessonId, lang, en: e.en.toLowerCase(), tr: e.tr, gloss: e.gloss })), skipDuplicates: true });
@@ -69,17 +91,17 @@ async function translatorFor(lessonId: string): Promise<LessonTranslator | null>
   const lesson = await getLesson(lessonId);
   if (!lesson) return null;
   const t = new LessonTranslator({
-    model: env.aiModelTranslate,
+    pickModel,
     lesson: { subject: lesson.subject, title: lesson.title, keyTerms: lesson.keyTerms },
-    complete: (args) => complete(env.aiModelTranslate, args),
+    complete: (model, args) => complete(model, args),
     schedule,
     activeLangs: () => bus.activeLangs(lessonId),
     publish: (type, data, audience) => bus.publish(lessonId, type, data, audience),
-    saveTranslation: async (segmentId, lang, tr, latencyMs) => {
+    saveTranslation: async (segmentId, lang, tr, latencyMs, model) => {
       await db.translation.upsert({
         where: { segmentId_lang: { segmentId, lang } },
-        create: { segmentId, lang, text: tr.text, terms: tr.terms, model: env.aiModelTranslate, latencyMs },
-        update: { text: tr.text, terms: tr.terms, model: env.aiModelTranslate, latencyMs },
+        create: { segmentId, lang, text: tr.text, terms: tr.terms, model, latencyMs },
+        update: { text: tr.text, terms: tr.terms, model, latencyMs },
       });
     },
     saveFix: async (segmentId, text) => {
@@ -138,11 +160,18 @@ export async function lessonGlossary(lessonId: string, lang: string): Promise<Gl
 // can take 10+ seconds to answer its first request.
 export function warmUp(): void {
   if (!aiEnabled()) return;
-  void scheduler
-    .run({ cost: env.aiTranslateCost, priority: 2 }, () =>
-      chatComplete(ai(), { model: env.aiModelTranslate, messages: [{ role: "user", content: "Reply with OK." }], maxTokens: 3, jsonMode: false }),
-    )
-    .catch((err) => log("warm-up", (err as Error).message));
+  const models = new Map([
+    [env.aiModelTranslate, env.aiTranslateCost],
+    [env.aiModelQuality, env.aiQualityCost],
+  ]);
+  for (const [model, cost] of models) {
+    void schedule(2, cost, (signal) => {
+      const timeout = AbortSignal.any([signal, AbortSignal.timeout(20_000)]);
+      return chatComplete(ai(), { model, messages: [{ role: "user", content: "Reply with OK." }], maxTokens: 3, jsonMode: false, signal: timeout });
+    }).catch((err) => {
+      if (!(err instanceof PreemptedError)) log("warm-up", model, (err as Error).message);
+    });
+  }
 }
 
 export function translationStats(lessonId: string): { p50: number | null; count: number } {

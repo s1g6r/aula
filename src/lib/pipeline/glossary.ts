@@ -13,7 +13,9 @@ export type GlossaryEntry = { en: string; tr: string; gloss: string };
 
 export type GlossaryDeps = {
   complete: (args: { messages: ChatMessage[]; signal: AbortSignal; onText: (t: string) => void }) => Promise<string>;
-  schedule: <T>(priority: number, fn: () => Promise<T>) => Promise<T>;
+  // Runs the call as a preemptible background job (cost is bound by the caller).
+  schedule: <T>(priority: number, fn: (signal: AbortSignal) => Promise<T>) => Promise<T>;
+  isPreempted?: (err: unknown) => boolean;
   load: (lessonId: string, lang: string) => Promise<GlossaryEntry[]>;
   save: (lessonId: string, lang: string, entries: GlossaryEntry[]) => Promise<void>;
   publish: (lessonId: string, lang: string, entries: GlossaryEntry[]) => void;
@@ -43,12 +45,14 @@ export class GlossaryService {
     const have = new Set((await this.d.load(lesson.id, lang)).map((e) => norm(e.en)));
     const missing = lesson.keyTerms.filter((t) => !have.has(norm(t)));
     const size = this.d.chunkSize ?? 10;
+    let preemptions = 0;
     for (let i = 0; i < missing.length; i += size) {
       const chunk = missing.slice(i, i + size);
       try {
-        const text = await this.d.schedule(1, () => {
+        const text = await this.d.schedule(1, (signal) => {
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(new Error("glossary timeout")), this.d.timeoutMs ?? 45_000);
+          signal.addEventListener("abort", () => controller.abort(signal.reason));
+          const timer = setTimeout(() => controller.abort(new Error("glossary timeout")), this.d.timeoutMs ?? 20_000);
           return this.d
             .complete({
               messages: buildGlossaryMessages({ subject: lesson.subject ?? undefined, title: lesson.title ?? undefined, terms: chunk, lang: lang as LanguageCode | "en" }),
@@ -71,6 +75,12 @@ export class GlossaryService {
           this.d.publish(lesson.id, lang, entries);
         }
       } catch (err) {
+        // Cancelled so a live caption could go first: try this chunk again
+        // (it waits until captions are idle).
+        if (this.d.isPreempted?.(err) && preemptions++ < 20) {
+          i -= size;
+          continue;
+        }
         this.d.onError?.(err);
       }
     }

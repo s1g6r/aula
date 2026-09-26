@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Lru, translationCacheKey } from "./lru";
-import { AiScheduler } from "./scheduler";
+import { AiScheduler, PreemptedError } from "./scheduler";
 
 const deferred = () => {
   let resolve!: () => void;
@@ -44,6 +44,47 @@ describe("AiScheduler", () => {
     block.resolve();
     await Promise.all([first, ...jobs]);
     expect(order).toEqual(["caption-1", "caption-2", "glossary", "recap"]);
+  });
+
+  it("with maxJobs = 1, runs one call at a time even when units remain", async () => {
+    const s = new AiScheduler(4, 1);
+    const gate = deferred();
+    const first = s.run({ cost: 1, priority: 1 }, () => gate.promise);
+    const second = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await tick();
+    expect(s.inUse).toBe(1);
+    expect(s.queued).toBe(1);
+    gate.resolve();
+    await expect(second).resolves.toBe("caption");
+    await first;
+  });
+
+  it("cancels a running background job so a waiting caption goes out now", async () => {
+    const s = new AiScheduler(4, 1);
+    const glossary = s.run({ cost: 2, priority: 1, preemptible: true }, (signal) => new Promise((_r, reject) => signal.addEventListener("abort", () => reject(signal.reason))));
+    await tick();
+    const caption = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await expect(glossary).rejects.toBeInstanceOf(PreemptedError);
+    await expect(caption).resolves.toBe("caption");
+    expect(s.inUse).toBe(0);
+  });
+
+  it("never cancels live captions or jobs that aren't marked preemptible", async () => {
+    const s = new AiScheduler(4, 1);
+    const gate = deferred();
+    let aborted = false;
+    const recap = s.run({ cost: 2, priority: 2 }, async (signal) => {
+      signal.addEventListener("abort", () => (aborted = true));
+      await gate.promise;
+      return "recap";
+    });
+    await tick();
+    const caption = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await tick();
+    expect(aborted).toBe(false);
+    gate.resolve();
+    await expect(recap).resolves.toBe("recap");
+    await expect(caption).resolves.toBe("caption");
   });
 
   it("frees units even when a job throws", async () => {

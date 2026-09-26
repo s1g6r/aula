@@ -11,7 +11,7 @@ function harness(replies: string[], existing: GlossaryEntry[] = []) {
       prompts.push(messages[1].content);
       return replies.shift() ?? "";
     },
-    schedule: (_p, fn) => fn(),
+    schedule: (_p, fn) => fn(new AbortController().signal),
     load: async () => existing,
     save: async (_l, _lang, e) => void saved.push(e),
     publish: (_l, _lang, e) => void published.push(e),
