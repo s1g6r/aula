@@ -174,3 +174,38 @@ A real two-phone lesson found this. With two calls allowed at once, a caption ca
 
 **The teacher picks the microphone, and Aula checks it first.** (Found in the first real mic test.)
 On a MacBook whose default input was Bluetooth AirPods, Chrome's speech engine reported "no microphone" (`audio-capture`) even though macOS allowed Chrome to use the mic. Now Aula opens the mic itself before listening. That gives precise messages: blocked, not found, or "that mic isn't sending sound", which is typical of AirPods connected to a phone. The teacher view also has a microphone picker (remembered per browser) and a small level meter, so a teacher can see Aula hears them before any words appear. The chosen mic's audio is passed straight to Chrome's recognizer, which Chrome 135+ supports. If on-device recognition fails, Aula quietly switches to Google's speech service. A new opt-in test plays a synthesized voice into real Chrome as the microphone and checks the words become a caption, which they did in about 3 seconds.
+
+---
+
+## P4: Signals and questions (Sep 26)
+
+**"I'm lost" counts students, not taps, over the last minute.**
+The teacher sees how many different students tapped in the last 60 seconds, and the sentence most of them were on ("2 students lost at: '...the Calvin cycle uses that ATP...'"). The pulse fades by itself: the server pushes an update when the oldest tap ages out. Lines where students got lost get a small "2 lost" marker in the transcript for the whole lesson, which the review timeline (P6) will build on.
+
+**One tap of each kind per 20 seconds.**
+The brief says one signal per 20 seconds per student. We apply that separately to "I'm lost" and "Slower", so a student who needs both isn't blocked. The button shows a countdown instead of silently doing nothing.
+
+**Questions: the AI only translates.**
+The prompt forbids answering, and the teacher answers out loud and taps "Mark answered", which shows up on that student's phone only. Questions use the same model routing as captions and run at caption priority, since a question is time-sensitive.
+
+**Moderation is light and honest about it.**
+A small whole-word filter (English, Spanish, Portuguese, French) hides obvious profanity. It checks the translated English too, so it covers other languages. A teacher can also mute a student, which hides that student's questions (past and future) but never their captions or their "I'm lost" button. Hidden questions are kept in the database for the teacher's review, not shown live.
+
+**Events addressed to one student.**
+The event bus gained a "this participant only" audience, used for "your teacher answered". Nothing about one student's questions ever reaches another student's phone.
+
+---
+
+## P5: Deploy (Sep 26)
+
+**A Render Blueprint (`render.yaml`) defines everything.**
+One free web service and one free Postgres, with `DATABASE_URL` wired automatically. Render generates `AUTH_SECRET`, and `AI_API_KEY` is the only value typed by hand. The whole setup is reproducible, and no secret lives in the repo.
+
+**Migrations run in the start command.**
+`npm run start:prod` runs `prisma migrate deploy` and then `next start`. That works on every Render plan; pre-deploy commands may not be available on free instances.
+
+**Privacy clean-up runs inside the server.**
+`src/instrumentation.ts` starts an hourly job when the server boots. It deletes expired lessons (30 days, or 24 hours for guests) with everything under them, removes empty guest accounts, and ends lessons left "live" for more than 12 hours. No separate cron service, no cost. The deletion logic doesn't depend on in-memory caches (they're passed in), so it's tested directly against the test database.
+
+**Virginia region.**
+US East, since most judges are likely in the US. The database must be in the same region as the web service for the free internal connection.

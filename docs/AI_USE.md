@@ -29,6 +29,14 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the translation pipeline (scheduler, per-lesson queue, streaming parser, cache, glossary), term highlighting and tap-to-define, the mock AI server for tests, and reran the benchmark after each prompt change.
 - **I decided / changed:** chose Featherless, and picked the model setup from the benchmark: route by language (Qwen3 30B for speed, Gemma 4 for Somali, Haitian Creole and Dari, glossaries and recaps). _(add anything else you changed)_
 
+### P4: Signals and questions (Sep 26)
+- **Claude Code generated:** the signal summary (unique students per minute, anchored to a sentence), the student buttons and ask sheet, the teacher's pulse and questions panels, question translation, the profanity filter, mute, and end-to-end tests.
+- **I decided / changed:** _(fill in)_
+
+### P5: Deploy (Sep 26)
+- **Claude Code generated:** `render.yaml`, the production start script, the hourly privacy clean-up, and `docs/DEPLOY.md`. I created the Render account and services, pasted the API key, and set up DNS and the uptime monitor myself.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula
@@ -38,5 +46,6 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 | Live translation | Translates each finished sentence into every language present in the room, marks where each key term appears in the translation, and repairs obvious speech-recognition mistakes | Qwen3-30B-A3B-Instruct, or Gemma 4 26B when Somali, Haitian Creole or Dari is in the room (Featherless.ai) | Output must pass a strict schema or the student sees the English line instead. Only lesson text is sent, never names. The model is told to translate only and never add content |
 | Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | Gemma 4 26B | Only terms the teacher listed are kept. Runs at low priority so it never slows captions |
 | Speech-recognition repair | Inside the translation call, fixes obvious mishearings ("sell membrane" to "cell membrane") | same | The correction is shown next to what Chrome heard, never silently |
+| Student questions | Translates a student's question into English for the teacher | same routing as live translation | Told to translate only and never answer. The teacher answers. Profanity is checked on the original and the English. Only the teacher sees questions |
 | Recap | _(P6)_ | | |
 | Student questions | _(P4)_ | | |
