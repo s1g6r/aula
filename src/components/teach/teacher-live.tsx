@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Mic, MicOff, Send, Users } from "lucide-react";
+import { Check, Copy, HelpCircle, MessageCircleQuestion, Mic, MicOff, Send, Turtle, Users, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import { getLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
 type Room = { students: number; langs: Record<string, number>; participants: { id: string; nickname: string; lang: string; muted: boolean }[] };
+type Signals = { lost: number; slower: number; anchor: { seq: number; count: number } | null; anchorText: string | null; totals: Record<number, number> };
+type Question = { id: string; nickname: string; participantId: string; lang: string; original: string; english: string | null; translating: boolean; answered: boolean; at: string };
+
+const NO_SIGNALS: Signals = { lost: 0, slower: 0, anchor: null, anchorText: null, totals: {} };
 
 type Props = {
   lesson: { id: string; code: string; title: string | null; subject: string | null; status: "LIVE" | "ENDED"; startedAt: string };
@@ -41,12 +45,23 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
   const [interim, setInterim] = useState("");
   const [sending, setSending] = useState<string[]>([]);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [signals, setSignals] = useState<Signals>(NO_SIGNALS);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   const onEvent = useCallback((e: StreamEvent) => {
     if (e.type === "room") setRoom(e.data as Room);
-    else if (e.type === "snapshot") {
-      const data = e.data as { room?: Room };
+    else if (e.type === "signal-summary") setSignals(e.data as Signals);
+    else if (e.type === "question") {
+      const q = e.data as Question;
+      setQuestions((qs) => (qs.some((x) => x.id === q.id) ? qs.map((x) => (x.id === q.id ? q : x)) : [...qs, q]));
+    } else if (e.type === "question-removed") {
+      const { id } = e.data as { id: string };
+      setQuestions((qs) => qs.filter((q) => q.id !== id));
+    } else if (e.type === "snapshot") {
+      const data = e.data as { room?: Room; signals?: Signals; questions?: Question[] };
       if (data.room) setRoom(data.room);
+      if (data.signals) setSignals(data.signals);
+      if (data.questions) setQuestions(data.questions);
       dispatch(e as CaptionEvent);
     } else if (e.type === "segment") {
       const text = (e.data as { text: string }).text;
@@ -158,7 +173,7 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
           <h2 id="transcript-h" className="sr-only">
             Live transcript
           </h2>
-          <Transcript lines={captions.lines} sending={sending} interim={interim} ended={captions.ended} />
+          <Transcript lines={captions.lines} sending={sending} interim={interim} ended={captions.ended} lostTotals={signals.totals} anchorSeq={signals.anchor?.seq ?? null} />
           {live && (
             <div className="border-t p-4">
               <MicControl
@@ -198,6 +213,8 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
         </section>
 
         <aside className="flex flex-col gap-5">
+          {live && <PulseCard signals={signals} />}
+          {(live || questions.length > 0) && <QuestionsCard lessonId={lesson.id} questions={questions} />}
           {live ? (
             <JoinCard code={lesson.code} joinUrl={joinUrl} qrSvg={qrSvg} />
           ) : (
@@ -239,7 +256,21 @@ function ConnectionPill({ status, ended, startedAt }: { status: string; ended: b
   );
 }
 
-function Transcript({ lines, sending, interim, ended }: { lines: { seq: number; en: string; fix?: string }[]; sending: string[]; interim: string; ended: boolean }) {
+function Transcript({
+  lines,
+  sending,
+  interim,
+  ended,
+  lostTotals,
+  anchorSeq,
+}: {
+  lines: { seq: number; en: string; fix?: string }[];
+  sending: string[];
+  interim: string;
+  ended: boolean;
+  lostTotals: Record<number, number>;
+  anchorSeq: number | null;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   useEffect(() => {
@@ -265,15 +296,23 @@ function Transcript({ lines, sending, interim, ended }: { lines: { seq: number; 
         </div>
       ) : (
         <ol className="space-y-3 text-lg leading-relaxed">
-          {lines.map((l) => (
-            <li key={l.seq} className="flex gap-3">
-              <span className="w-7 shrink-0 pt-1 text-right text-xs text-ink-3 tabular-nums">{l.seq}</span>
-              <span>
-                {l.fix ?? l.en}
-                {l.fix && <span className="ml-2 text-xs text-ink-3">(heard: &ldquo;{l.en}&rdquo;)</span>}
-              </span>
-            </li>
-          ))}
+          {lines.map((l) => {
+            const lost = lostTotals[l.seq] ?? 0;
+            return (
+              <li key={l.seq} className={cn("-mx-2 flex gap-3 rounded-lg px-2 transition-colors", l.seq === anchorSeq && "bg-coral-soft")}>
+                <span className="w-7 shrink-0 pt-1 text-right text-xs text-ink-3 tabular-nums">{l.seq}</span>
+                <span className="flex-1">
+                  {l.fix ?? l.en}
+                  {l.fix && <span className="ml-2 text-xs text-ink-3">(heard: &ldquo;{l.en}&rdquo;)</span>}
+                </span>
+                {lost > 0 && (
+                  <span className="mt-1 h-fit shrink-0 rounded-full bg-coral px-2 py-0.5 text-xs font-semibold text-primary-foreground" title={`${lost} lost here`}>
+                    {lost} lost
+                  </span>
+                )}
+              </li>
+            );
+          })}
           {sending.map((t, i) => (
             <li key={`s${i}`} className="flex gap-3 text-ink-2">
               <span className="w-7 shrink-0" />
@@ -454,5 +493,126 @@ function RoomCard({ room }: { room: Room }) {
         </details>
       )}
     </section>
+  );
+}
+
+function PulseCard({ signals }: { signals: Signals }) {
+  const quiet = signals.lost === 0 && signals.slower === 0;
+  const snippet = signals.anchorText && signals.anchorText.length > 90 ? `${signals.anchorText.slice(0, 87)}...` : signals.anchorText;
+  return (
+    <section
+      aria-labelledby="pulse-h"
+      aria-live="polite"
+      className={cn("rounded-2xl border p-5 transition-colors", signals.lost > 0 ? "border-coral/40 bg-coral-soft" : "bg-card")}
+    >
+      <h2 id="pulse-h" className="flex items-center gap-2 text-lg font-semibold">
+        {signals.lost > 0 && <span className="size-2.5 animate-pulse-soft rounded-full bg-coral" aria-hidden />}
+        Understanding
+        <span className="ml-auto text-xs font-normal text-ink-2">last minute</span>
+      </h2>
+      {quiet ? (
+        <p className="mt-2 text-sm text-ink-2">No signals right now. Students can tap &ldquo;I&rsquo;m lost&rdquo; or &ldquo;Slower&rdquo; anytime. You&rsquo;ll see how many, never who.</p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {signals.lost > 0 && (
+            <p className="flex gap-2">
+              <HelpCircle className="mt-0.5 size-5 shrink-0 text-coral" aria-hidden />
+              <span>
+                <strong>{signals.lost === 1 ? "1 student" : `${signals.lost} students`} lost</strong>
+                {snippet && (
+                  <>
+                    {" "}
+                    at: <span className="italic">&ldquo;{snippet}&rdquo;</span>
+                  </>
+                )}
+              </span>
+            </p>
+          )}
+          {signals.slower > 0 && (
+            <p className="flex gap-2">
+              <Turtle className="mt-0.5 size-5 shrink-0 text-saffron" aria-hidden />
+              <span>
+                <strong>{signals.slower === 1 ? "1 student" : `${signals.slower} students`}</strong> asked you to slow down
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function QuestionsCard({ lessonId, questions }: { lessonId: string; questions: Question[] }) {
+  const open = questions.filter((q) => !q.answered).length;
+  // Unanswered first, oldest first; answered ones sink to the bottom.
+  const ordered = [...questions].sort((a, b) => Number(a.answered) - Number(b.answered) || a.at.localeCompare(b.at));
+  return (
+    <section aria-labelledby="questions-h" className="rounded-2xl border bg-card p-5">
+      <h2 id="questions-h" className="flex items-center gap-2 text-lg font-semibold">
+        <MessageCircleQuestion className="size-5 text-ink-2" aria-hidden />
+        Questions
+        {open > 0 && <span className="rounded-full bg-coral px-2 py-0.5 text-xs font-semibold text-primary-foreground">{open}</span>}
+      </h2>
+      {questions.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-2">Students can ask in their own language. You&rsquo;ll see it here in English.</p>
+      ) : (
+        <ul className="mt-3 max-h-[45vh] space-y-3 overflow-y-auto">
+          {ordered.map((q) => (
+            <QuestionItem key={q.id} lessonId={lessonId} q={q} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function QuestionItem({ lessonId, q }: { lessonId: string; q: Question }) {
+  const [confirmMute, setConfirmMute] = useState(false);
+  const lang = getLanguage(q.lang);
+  const time = new Date(q.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return (
+    <li className={cn("rounded-xl border p-3", q.answered && "opacity-60")}>
+      {q.lang === "en" ? (
+        <p className="font-medium">{q.original}</p>
+      ) : (
+        <>
+          <p className="font-medium">{q.english ?? (q.translating ? "Translating..." : q.original)}</p>
+          {(q.english || !q.translating) && (
+            <p lang={q.lang} dir={lang?.dir} className="mt-1 text-sm text-ink-2">
+              {q.original}
+            </p>
+          )}
+        </>
+      )}
+      <p className="mt-1.5 text-xs text-ink-3">
+        {q.nickname} · {lang?.name ?? "English"} · {time}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {q.answered ? (
+          <span className="flex items-center gap-1 text-xs font-medium text-sage">
+            <Check className="size-3.5" aria-hidden /> Answered
+          </span>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => void fetch(`/api/lessons/${lessonId}/questions/${q.id}/answered`, { method: "POST" })}>
+            <Check aria-hidden /> Mark answered
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant={confirmMute ? "default" : "ghost"}
+          onClick={() => {
+            if (!confirmMute) return setConfirmMute(true);
+            void fetch(`/api/lessons/${lessonId}/participants/${q.participantId}/mute`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ muted: true }),
+            });
+          }}
+          onBlur={() => setConfirmMute(false)}
+        >
+          <VolumeX aria-hidden /> {confirmMute ? `Hide all from ${q.nickname}?` : "Mute"}
+        </Button>
+      </div>
+    </li>
   );
 }

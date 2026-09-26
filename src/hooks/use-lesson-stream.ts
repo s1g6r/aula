@@ -29,6 +29,8 @@ const EVENT_TYPES = [
   "room",
   "signal-summary",
   "question",
+  "question-status",
+  "question-removed",
   "glossary",
 ] as const;
 

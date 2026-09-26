@@ -76,7 +76,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/lessons/
       if (replay) {
         for (const e of replay) write(encodeEvent(e));
       } else {
-        const data = who.role === "teacher" ? await teacherSnapshot(id) : await studentSnapshot(id, who.lang!);
+        const data = who.role === "teacher" ? await teacherSnapshot(id) : await studentSnapshot(id, who.lang!, who.participantId!);
         write(encodeEvent({ id: `${bus.epoch}-${atN}`, type: "snapshot", data }));
       }
       ready = true;

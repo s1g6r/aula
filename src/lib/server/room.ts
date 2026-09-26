@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { bus } from "@/lib/realtime/bus";
 import { getLesson } from "./lessons";
 import { getParticipantsById } from "./participants";
+import { myQuestions, teacherQuestions } from "./questions";
+import { signalSummary } from "./signals";
 
 // What the teacher sees about the room: how many students, which languages,
 // and nicknames. Nicknames only ever go to the teacher's screen.
@@ -30,10 +32,11 @@ type SnapshotSegment = {
 
 // Everything a screen needs to draw the lesson from scratch: sent on first
 // connect, and on reconnect when the missed events are no longer buffered.
-export async function studentSnapshot(lessonId: string, lang: string) {
-  const [lesson, glossary, segments] = await Promise.all([
+export async function studentSnapshot(lessonId: string, lang: string, participantId: string) {
+  const [lesson, glossary, questions, segments] = await Promise.all([
     getLesson(lessonId),
     db.term.findMany({ where: { lessonId, lang }, select: { en: true, tr: true, gloss: true } }),
+    myQuestions(lessonId, participantId),
     db.segment.findMany({
       where: { lessonId },
       orderBy: { seq: "asc" },
@@ -49,6 +52,7 @@ export async function studentSnapshot(lessonId: string, lang: string) {
   return {
     ended: lesson?.status === "ENDED",
     glossary,
+    questions,
     segments: segments.map((s): SnapshotSegment => ({
       seq: s.seq,
       text: s.text,
@@ -61,14 +65,18 @@ export async function studentSnapshot(lessonId: string, lang: string) {
 }
 
 export async function teacherSnapshot(lessonId: string) {
-  const [lesson, segments, room] = await Promise.all([
+  const [lesson, segments, room, signals, questions] = await Promise.all([
     getLesson(lessonId),
     db.segment.findMany({ where: { lessonId }, orderBy: { seq: "asc" }, select: { seq: true, text: true, fixedText: true, startedAt: true } }),
     roomState(lessonId),
+    signalSummary(lessonId),
+    teacherQuestions(lessonId),
   ]);
   return {
     ended: lesson?.status === "ENDED",
     segments: segments.map((s) => ({ seq: s.seq, text: s.text, fixedText: s.fixedText, startedAt: s.startedAt.toISOString(), tr: null })),
     room,
+    signals,
+    questions,
   };
 }

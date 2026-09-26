@@ -21,6 +21,22 @@ export const STUDENT_STRINGS_EN = {
   settings: "Settings",
   showEnglish: "Show the English under each line",
   showEnglishHelp: "Reading both helps you learn the English words.",
+  lost: "I'm lost",
+  slower: "Slower, please",
+  ask: "Ask",
+  sentLost: "Sent. Your teacher sees how many students are lost, never who.",
+  sentSlower: "Sent. Your teacher will see that someone needs it slower.",
+  waitSeconds: "Wait {s}s",
+  askTitle: "Ask your teacher",
+  askHelp: "Write in any language. Only your teacher sees it.",
+  askPlaceholder: "Type your question...",
+  send: "Send",
+  sending: "Sending...",
+  yourQuestions: "Your questions",
+  questionSent: "Sent",
+  questionAnswered: "Your teacher answered",
+  tryAgainSoon: "Wait a moment before sending again.",
+  sendFailed: "Couldn't send. Check your connection.",
 };
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;

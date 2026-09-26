@@ -11,6 +11,7 @@ import { getLanguage, LANGUAGES } from "@/lib/languages";
 import { findKeyTerms, termKey } from "@/lib/terms";
 import { cn } from "@/lib/utils";
 import { studentStrings, type StudentStrings } from "@/i18n/student";
+import { StudentActions, type MyQuestion } from "./student-actions";
 
 type Props = {
   lesson: { id: string; code: string; title: string | null; subject: string | null; status: "LIVE" | "ENDED"; keyTerms: string[] };
@@ -47,6 +48,7 @@ export function StudentLive({ lesson, me }: Props) {
   const [glossary, setGlossary] = useState<Glossary>({});
   const [bilingual, setBilingual] = useState(true);
   const [openTerm, setOpenTerm] = useState<OpenTerm | null>(null);
+  const [questions, setQuestions] = useState<MyQuestion[]>([]);
   const t = studentStrings(lang);
   const language = getLanguage(lang);
 
@@ -67,7 +69,15 @@ export function StudentLive({ lesson, me }: Props) {
   const onEvent = useCallback(
     (e: StreamEvent) => {
       if (e.type === "glossary") return addGlossary((e.data as { terms: { en: string; tr: string; gloss: string }[] }).terms);
-      if (e.type === "snapshot") addGlossary((e.data as { glossary?: { en: string; tr: string; gloss: string }[] }).glossary ?? [], true);
+      if (e.type === "question-status") {
+        const { id } = e.data as { id: string };
+        return setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, answered: true } : q)));
+      }
+      if (e.type === "snapshot") {
+        const data = e.data as { glossary?: { en: string; tr: string; gloss: string }[]; questions?: MyQuestion[] };
+        addGlossary(data.glossary ?? [], true);
+        setQuestions(data.questions ?? []);
+      }
       dispatch(e as CaptionEvent);
     },
     [addGlossary],
@@ -182,6 +192,16 @@ export function StudentLive({ lesson, me }: Props) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {!captions.ended && (
+        <StudentActions
+          lessonId={lesson.id}
+          latestSeq={captions.lines.at(-1)?.seq ?? null}
+          t={t}
+          questions={questions}
+          onAsked={(q) => setQuestions((qs) => [...qs, q])}
+        />
+      )}
 
       <TermSheet term={openTerm} onClose={() => setOpenTerm(null)} lang={lang} glossary={glossary} t={t} lessonTitle={lesson.title} />
     </div>
