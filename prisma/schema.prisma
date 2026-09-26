@@ -1,0 +1,216 @@
+// Aula's data model. Everything hangs off Lesson with cascading deletes, so a
+// teacher deleting a lesson (or the 30-day auto-delete) removes every
+// transcript line, translation, signal, question and recap in one step.
+// No audio is ever stored. Students have no accounts: a Participant is just a
+// nickname + language for one lesson.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Teacher {
+  id           String   @id @default(cuid(2))
+  email        String   @unique
+  name         String
+  // bcrypt hash. Guest teachers ("Try it live") have none and can't log in
+  // again once their session cookie is gone.
+  passwordHash String?
+  isGuest      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  lessons      Lesson[]
+}
+
+enum LessonStatus {
+  LIVE
+  ENDED
+}
+
+enum RecapStatus {
+  NONE
+  GENERATING
+  READY
+  FAILED
+}
+
+model Lesson {
+  id          String       @id @default(cuid(2))
+  // 6-character join code students type or scan, e.g. "K7M2QX".
+  code        String       @unique
+  teacherId   String
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  title       String?
+  subject     String?
+  keyTerms    String[]
+  status      LessonStatus @default(LIVE)
+  recapStatus RecapStatus  @default(NONE)
+  startedAt   DateTime     @default(now())
+  endedAt     DateTime?
+  // When this lesson and everything under it gets auto-deleted
+  // (30 days by default, 24 hours for guest lessons).
+  expiresAt   DateTime
+  // The seeded Demo Replay lesson. Never auto-deleted.
+  isReplay    Boolean      @default(false)
+
+  segments     Segment[]
+  participants Participant[]
+  signals      Signal[]
+  questions    Question[]
+  terms        Term[]
+  recap        Recap?
+
+  @@index([teacherId, startedAt])
+  @@index([expiresAt])
+}
+
+model Participant {
+  id         String   @id @default(cuid(2))
+  lessonId   String
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  // SHA-256 of the random token kept in the student's browser. The raw
+  // token proves "this is the same student" without any account.
+  tokenHash  String   @unique
+  // Shown only to the teacher, never to classmates, never sent to the AI.
+  nickname   String
+  lang       String
+  muted      Boolean  @default(false)
+  joinedAt   DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  signals   Signal[]
+  questions Question[]
+  flags     TranslationFlag[]
+
+  @@index([lessonId])
+}
+
+// One finalized sentence (or phrase) from the teacher's speech recognition.
+model Segment {
+  id        String   @id @default(cuid(2))
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  // Order within the lesson. Clients place lines by seq, so late or
+  // out-of-order translations never scramble the transcript.
+  seq       Int
+  text      String
+  // The model's repair of an obvious speech-recognition error, if any.
+  fixedText String?
+  startedAt DateTime
+  createdAt DateTime @default(now())
+
+  translations Translation[]
+
+  @@unique([lessonId, seq])
+}
+
+model Translation {
+  id        String   @id @default(cuid(2))
+  segmentId String
+  segment   Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  lang      String
+  text      String
+  // [{ en, tr, gloss }] validated by src/lib/ai/schemas.ts before saving.
+  terms     Json
+  model     String
+  latencyMs Int?
+  createdAt DateTime @default(now())
+
+  flags TranslationFlag[]
+
+  @@unique([segmentId, lang])
+}
+
+// Glossary cache: each key term is defined once per language per lesson and
+// the same definition is reused every time the term comes up again.
+model Term {
+  id        String   @id @default(cuid(2))
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  // Lowercased English term.
+  en        String
+  lang      String
+  tr        String
+  gloss     String
+  createdAt DateTime @default(now())
+
+  @@unique([lessonId, en, lang])
+}
+
+enum SignalType {
+  LOST
+  SLOWER
+}
+
+model Signal {
+  id            String      @id @default(cuid(2))
+  lessonId      String
+  lesson        Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  type          SignalType
+  // The caption line the student was on when they tapped. Null if the
+  // teacher hadn't said anything yet.
+  seq           Int?
+  createdAt     DateTime    @default(now())
+
+  @@index([lessonId, createdAt])
+}
+
+model Question {
+  id            String      @id @default(cuid(2))
+  lessonId      String
+  lesson        Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  lang          String
+  original      String
+  // English for the teacher. Null until translated, or if translation failed.
+  english       String?
+  // Caught by the profanity filter or sent by a muted student.
+  hidden        Boolean     @default(false)
+  answeredAt    DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([lessonId, createdAt])
+}
+
+model Recap {
+  // Also the public "What you missed" link (/r/<id>), so it must be
+  // unguessable: cuid2 is 24 random-looking characters.
+  id        String   @id @default(cuid(2))
+  lessonId  String   @unique
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  // English recap: { summary[], keyTerms[{ term, definition }], checkQuestions[{ q, answer }] }
+  content   Json
+  model     String
+  createdAt DateTime @default(now())
+
+  translations RecapTranslation[]
+}
+
+model RecapTranslation {
+  id        String   @id @default(cuid(2))
+  recapId   String
+  recap     Recap    @relation(fields: [recapId], references: [id], onDelete: Cascade)
+  lang      String
+  content   Json
+  createdAt DateTime @default(now())
+
+  @@unique([recapId, lang])
+}
+
+// "This translation looks wrong." One flag per student per line.
+model TranslationFlag {
+  id            String      @id @default(cuid(2))
+  translationId String
+  translation   Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([translationId, participantId])
+}
