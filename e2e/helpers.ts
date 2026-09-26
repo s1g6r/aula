@@ -22,7 +22,7 @@ export async function joinAsStudent(browser: Browser, code: string, nickname: st
   await page.getByText(language).click();
   await page.getByRole("button", { name: "Join lesson" }).click();
   await page.waitForURL(new RegExp(`/l/${code}$`));
-  await expect(page.getByRole("status")).toHaveText(/Live/);
+  await expect(page.getByRole("banner").getByRole("status")).toHaveText(/Live/);
   return page;
 }
 

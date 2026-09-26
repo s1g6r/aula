@@ -30,6 +30,7 @@ const server = http.createServer(async (req, res) => {
   const payload = JSON.parse(body || "{}");
   const user = payload.messages?.find((m) => m.role === "user")?.content ?? "";
 
+  const question = user.match(/^Message: (".*")$/m);
   const { langs, segments, glossaryTerms, glossaryLang } = parse(user);
   // Only the sentences being translated count, not earlier context.
   const said = segments.map((s) => s.en).join(" ");
@@ -39,7 +40,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (said.includes("[hang]")) return; // never answer
   let content;
-  if (glossaryTerms) {
+  if (question) {
+    content = JSON.stringify({ en: `EN: ${JSON.parse(question[1])}` });
+  } else if (glossaryTerms) {
     content = JSON.stringify({ terms: glossaryTerms.map((t) => ({ en: t, tr: `${t}-${glossaryLang}`, gloss: `Definition of ${t} in ${glossaryLang}.` })) });
   } else if (segments.length) {
     content = JSON.stringify({

@@ -18,7 +18,7 @@ test("teacher speech reaches a student's phone, survives a Wi-Fi drop, and ends 
 
   // Wi-Fi drops for 10 seconds while the teacher keeps talking.
   await student.context().setOffline(true);
-  await expect(student.getByRole("status")).toHaveText(/No connection/);
+  await expect(student.getByRole("banner").getByRole("status")).toHaveText(/No connection/);
   await say(teacher, "Plants take in carbon dioxide from the air.");
   await say(teacher, "The green color comes from chlorophyll.");
   await student.waitForTimeout(10_000);
