@@ -90,3 +90,77 @@ NONE, then GENERATING, then READY or FAILED. Every screen can show the right sta
 
 **Tests use their own database.**
 DB tests run against `aula_test`, never the dev database. The test setup refuses any URL without "test" in the database name, and applies migrations before the tests run.
+
+---
+
+## P2: Live English captions (Sep 26)
+
+**The server numbers the sentences, not the teacher's browser.**
+Each finished sentence gets the next `seq` from the server. If the teacher reloads the page mid-lesson, numbering just continues, and two sentences can never share a number.
+Rejected: letting the browser number sentences, as the brief sketched. A reload would restart at 1.
+
+**Connect in a fixed order: subscribe, catch up, then go live.**
+A phone connecting to the stream is subscribed first, then gets either a replay of what it missed or a full snapshot from the database, and only then the events that arrived meanwhile. Nothing published during the catch-up can slip through the gap.
+
+**Event ids include a server "epoch".**
+Ids look like `k3f9-57`. If the server restarts, the epoch changes, so a phone reconnecting with an old id gets a fresh snapshot instead of a wrong replay.
+
+**Interim words are never stored or replayed.**
+The half-finished sentence the teacher is saying right now is sent live and then forgotten. Only finished sentences are saved.
+
+**A dropped student's language stays "in the room" for 60 seconds.**
+If a phone's Wi-Fi blinks, their language keeps being translated, so when it reconnects the replay already includes those translations.
+
+**Phones detect dead connections themselves.**
+We found this with a test. The first version of the 10-second Wi-Fi-drop test passed, but the server log showed it never actually disconnected: Chrome's offline mode doesn't cut an open stream, and a real Wi-Fi drop often doesn't either. It just goes silent. Now the server sends a `ping` event every 15 seconds (a real event, because browsers hide SSE comments from JavaScript), the phone reconnects if it hears nothing for 40 seconds, and it closes and reopens immediately when the phone reports going offline and online. The test now proves no lines arrive while offline and all of them arrive, in order, afterwards.
+
+**Students are identified by an httpOnly cookie per lesson.**
+The token never appears in a URL (where it could end up in logs), and page scripts can't read it. `localStorage` only remembers the nickname and language on that phone for next time.
+
+**Speech runs on the laptop when Chrome allows it.**
+If Chrome 139+ reports on-device English recognition is available, audio never leaves the laptop. Otherwise Chrome uses Google's speech service, and the teacher's screen says which. If the mic keeps stopping (more than 6 restarts in 10 seconds), we stop retrying and point to the type-instead box.
+
+**"English (captions only)" is a student language option.**
+It's for deaf or hard-of-hearing students, and for English learners who want to read the English. They still get key-term highlights and simple-English definitions.
+
+**No `server-only` imports.**
+Our scripts (benchmark, replay generator) import the same modules outside Next.js, and that package crashes them.
+
+---
+
+## P3: Translation pipeline (Sep 26)
+
+The benchmark changed this design in five ways. Each one is backed by measurements in `MODEL_BENCHMARK.md`.
+
+**1. Stream the reply and deliver each language the moment it's complete.**
+A single reply for 4 languages took about 15 seconds with our first prompt, because the model writes one language after another. Now we read the reply as it streams, and a small parser (`scanTranslationStream`) spots when a language's part is finished, validates it, and sends it to those students. The first language arrives in about 2 seconds.
+
+**2. Definitions left the live path.**
+Asking for a definition with every term doubled the reply size. Now each language gets a glossary once, when its first student joins, generated in the background and stored. Live replies only carry the translation and where each term appears. That roughly halved the tokens, and so the waiting.
+
+**3. We decide which terms to highlight, not the model.**
+Given the whole key-term list, the model "found" terms that weren't in the sentence, like chlorophyll in a sentence that never mentions it. Now we match the teacher's terms in the English ourselves and tell the model exactly which ones to mark. Then we keep a term only if its translation really appears in the translated line.
+
+**4. One call at a time per lesson, plus merging.**
+The brief suggested 2 calls in flight per lesson, and a "split" mode could send one call per language in parallel. Both lose. Our measurements show Featherless processes one account's parallel requests one after another: four glossary calls started together finished at 11, 24, 37 and 48 seconds. So each lesson runs one call, and sentences that arrive meanwhile are merged into the next call (up to 4). The setting stays configurable (`LESSON_CONCURRENCY`).
+
+**5. Freshness over completeness.**
+If translation falls more than 20 seconds behind the teacher, the oldest waiting lines are skipped. Students see those in English, and captions jump back to what the teacher is saying now. A caption that's a minute late is worse than an English one.
+
+**Timeouts: "stalled for 8 seconds", not "took 8 seconds".**
+The brief's 8-second timeout would cut off the last language of a healthy streaming reply. Instead, a call is abandoned if no new text arrives for 8 seconds, with a 30-second hard cap. Whatever already arrived is kept, and the rest falls back to English.
+
+**One scheduler for every AI call, with priorities.**
+Live captions go first, then glossaries and catch-up translations, then recaps and warm-up calls. It also never exceeds our plan's concurrency units, so we don't trigger 429 errors in the first place. We retry once on a 429 anyway, but only if nothing has reached students yet (otherwise the retry would duplicate lines).
+
+**Warm the model up when a lesson starts.**
+The first request to a model nobody has used recently took 7 to 14 seconds. Creating a lesson now sends a tiny request in the background, so the teacher's first sentence doesn't pay that cost.
+
+**Catch-up for a newly joined language.**
+If a student arrives reading a language nobody else is using, the last 3 lines are translated for them at low priority, so they don't start from nothing.
+
+**Repeated sentences come from a cache.**
+"Any questions?" translated once is reused, keyed by the normalized sentence, language and model (in memory, 2,000 entries).
+
+**End-to-end tests use a mock AI server, not test code inside the app.**
+`e2e/mock-ai.mjs` speaks the OpenAI streaming API and returns predictable "translations". It fails on `[fail]` and hangs on `[hang]`. The app runs unchanged against it, and the tests prove that a failure or a hang still leaves students with English, and that the next sentence recovers.

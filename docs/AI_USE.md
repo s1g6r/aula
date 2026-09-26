@@ -21,6 +21,14 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the Prisma schema (11 tables), the first migration, the seed script, and a test that deleting a lesson deletes all of its data.
 - **I decided / changed:** _(fill in)_
 
+### P2: Live English captions (Sep 26)
+- **Claude Code generated:** teacher sign-in and guest sessions, the event bus and SSE stream, the teacher live view (speech capture, typed fallback, QR), the student join flow and caption view, and the end-to-end tests. When the first Wi-Fi-drop test passed without actually disconnecting, it noticed from the server log and fixed both the test and the app.
+- **I decided / changed:** _(fill in)_
+
+### P3: Translation pipeline (Sep 26)
+- **Claude Code generated:** the translation pipeline (scheduler, per-lesson queue, streaming parser, cache, glossary), term highlighting and tap-to-define, the mock AI server for tests, and reran the benchmark after each prompt change.
+- **I decided / changed:** chose Featherless, and _(fill in: which model and why)_
+
 ---
 
 ## 2. AI features inside Aula
@@ -28,5 +36,7 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 | Feature | What the model does | Model | Guardrails |
 |---|---|---|---|
 | Live translation | Translates each finished sentence into every language present in the room, marks key academic terms, writes short definitions, and repairs obvious speech-recognition mistakes | _chosen after the benchmark_ (Featherless.ai) | Output must pass a strict schema or the student sees the English line instead. Only lesson text is sent, never names. The model is told to translate only and never add content |
+| Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | same as live translation | Only terms the teacher listed are kept. Runs at low priority so it never slows captions |
+| Speech-recognition repair | Inside the translation call, fixes obvious mishearings ("sell membrane" to "cell membrane") | same | The correction is shown next to what Chrome heard, never silently |
 | Recap | _(P6)_ | | |
 | Student questions | _(P4)_ | | |
