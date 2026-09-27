@@ -364,8 +364,11 @@ export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, 
           const el = e.currentTarget;
           setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
         }}
-        className="h-full overflow-y-auto px-4 pt-4 pb-8"
+        className="h-full overflow-y-auto px-4 pt-4 pb-8 focus-visible:ring-3 focus-visible:ring-coral/30 focus-visible:outline-none"
         style={{ "--caption-scale": scale } as React.CSSProperties}
+        tabIndex={0}
+        role="region"
+        aria-label={t.live}
       >
         {lines.length === 0 && !interim ? (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
@@ -473,7 +476,9 @@ function CaptionItem({
   onTerm: (term: OpenTerm) => void;
 }) {
   const english = line.fix ?? line.en;
-  const faded = latest ? "" : "opacity-80";
+  // Older lines are a little softer than the newest one, using color rather
+  // than transparency so every line keeps WCAG AA contrast.
+  const faded = latest ? "" : "text-ink/80";
   // Key terms in this sentence, and how each appears in the translation:
   // from the reply if it said, otherwise the glossary's standard word (found
   // in the translated text). Highlights appear as soon as the glossary does.

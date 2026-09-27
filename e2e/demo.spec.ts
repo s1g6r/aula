@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 
 test("the demo replay tells the whole story", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Watch a live demo" }).click();
+  await page.getByRole("link", { name: "Watch a live demo" }).first().click();
   await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByText(/9th-grade Biology class/)).toBeVisible();
 

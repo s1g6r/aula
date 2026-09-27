@@ -293,8 +293,8 @@ function HeroVisual() {
           <span className="rounded-full border px-2.5 py-1 text-xs font-medium">Español</span>
         </div>
         <div className="space-y-4 py-4">
-          <div className="opacity-70">
-            <p className="text-lg leading-snug font-medium" lang="es">
+          <div>
+            <p className="text-lg leading-snug font-medium text-ink/80" lang="es">
               Los cloroplastos son verdes porque están llenos de <mark className="rounded-sm bg-highlight px-0.5 text-highlight-ink">clorofila</mark>.
             </p>
             <p className="mt-1 text-xs text-ink-2">Chloroplasts are green because they&apos;re full of chlorophyll.</p>
@@ -309,9 +309,9 @@ function HeroVisual() {
         </div>
         <div className="flex gap-2 border-t pt-3">
           <span className="flex h-11 flex-[1.3] items-center justify-center gap-1.5 rounded-2xl bg-coral text-sm font-semibold text-primary-foreground ring-4 ring-coral/25">
-            <HelpCircle className="size-4" /> Estoy perdido
+            <HelpCircle className="size-4" /> Me perdí
           </span>
-          <span className="flex h-11 flex-1 items-center justify-center rounded-2xl border text-xs font-semibold">Más despacio</span>
+          <span className="flex h-11 flex-1 items-center justify-center rounded-2xl border text-xs font-semibold">Más lento, por favor</span>
         </div>
       </div>
       <div className="absolute -bottom-24 -left-2 w-64 rounded-2xl border border-coral/40 bg-coral-soft p-4 shadow-[0_20px_40px_-20px_rgba(27,30,43,0.35)] sm:-left-6 lg:-left-10">

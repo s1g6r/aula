@@ -4,7 +4,7 @@ export async function startGuestLesson(browser: Browser): Promise<{ page: Page; 
   const ctx = await browser.newContext({ permissions: ["microphone"] });
   const page = await ctx.newPage();
   await page.goto("/");
-  await page.getByRole("button", { name: "Try it live" }).click();
+  await page.getByRole("button", { name: "Try it live" }).first().click();
   await page.waitForURL(/\/teach\?guest=1/);
   await page.getByRole("button", { name: "Start lesson" }).click();
   await page.waitForURL(/\/teach\/[a-z0-9]+$/);

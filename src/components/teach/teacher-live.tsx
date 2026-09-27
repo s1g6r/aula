@@ -293,7 +293,10 @@ export function Transcript({
         const el = e.currentTarget;
         stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
       }}
-      className="h-0 flex-1 overflow-y-auto px-6 py-5"
+      className="h-0 flex-1 overflow-y-auto px-6 py-5 focus-visible:ring-3 focus-visible:ring-coral/30 focus-visible:outline-none"
+      tabIndex={0}
+      role="region"
+      aria-label="Transcript"
     >
       {empty ? (
         <div className="flex h-full flex-col items-center justify-center text-center text-ink-2">

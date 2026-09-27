@@ -147,7 +147,7 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
                 {ended ? <span className="text-ink-2">Microphone off</span> : <span className="font-medium">Listening</span>}
               </div>
             </div>
-            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto [&_section]:p-4">
+            <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl focus-visible:ring-3 focus-visible:ring-coral/30 focus-visible:outline-none [&_section]:p-4" tabIndex={0} role="region" aria-label="Teacher's side panel">
               {ended ? (
                 <section className="rounded-2xl border bg-card">
                   <h2 className="text-base font-semibold">Where students got lost</h2>

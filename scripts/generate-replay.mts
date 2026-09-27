@@ -22,7 +22,7 @@ const browser = await chromium.launch();
 // Teacher: guest session, new lesson with our title, subject and key terms.
 const teacher = await (await browser.newContext()).newPage();
 await teacher.goto(`${BASE}/`);
-await teacher.getByRole("button", { name: "Try it live" }).click();
+await teacher.getByRole("button", { name: "Try it live" }).first().click();
 await teacher.waitForURL(/\/teach\?guest=1/);
 await teacher.locator("#title").fill(DEMO_LESSON.title);
 await teacher.locator("#subject").fill(DEMO_LESSON.subject);
