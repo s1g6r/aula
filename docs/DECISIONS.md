@@ -269,3 +269,10 @@ Teachers of newcomers deliberately leave "wait time", and the recording uses a 2
 - *A glossary chunk that came back malformed was never retried,* leaving Vietnamese with 6 of 9 definitions. Each chunk now gets one retry.
 - *The model repaired "sell membrane" silently.* All four translations correctly said "cell membrane", but the model didn't report the corrected English, so the English line still read "sell membrane". Relying on the model to report its own repairs failed twice in testing. Aula now also checks every sentence against the teacher's multi-word key terms, with no AI involved: if every word matches except one that's off by at most two letters ("sell"/"cell", "why"/"y", "Kelvin"/"Calvin"), it restores the key term the moment the sentence arrives, and translates the repaired sentence. Single-word terms are left alone because false alarms are too likely, and plurals don't count as mistakes. The model's own repairs are still accepted under the rules above.
 - *A re-recording picked up cached translations.* Recording the same lesson twice on one server served most translations from the in-memory cache in about 1ms, which would have made the replay's "measured delays" misleading. The recorder now warns and exits with an error if any translation arrived suspiciously fast, and the committed replay was recorded on a freshly started server.
+
+---
+
+## P8: Polish (Sep 26 to 27)
+
+**The server keeps itself awake.**
+Rather than asking the teacher (you) to sign up for an uptime service, the server pings its own public health check every 10 minutes, which Render counts as a visit. It uses `RENDER_EXTERNAL_URL`, which Render sets automatically, so it needs no configuration and does nothing locally. We considered an n8n workflow (a sponsor perk) and a GitHub Actions schedule. n8n needs an extra account, and GitHub's scheduled runs can be late and would use up the private repo's free minutes. Neither adds anything over the self-ping for this job.

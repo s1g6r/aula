@@ -1,9 +1,11 @@
 // Runs once when the Next.js server starts. On the Node.js server (not the
-// edge runtime) we start the hourly privacy clean-up.
+// edge runtime) we start the hourly privacy clean-up and, on Render, the
+// keep-awake ping.
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs" && process.env.NODE_ENV === "production") {
-    const [{ startJanitor }, { forgetLesson }, { forgetSignals }, { forgetLessonPipeline }, { bus }] = await Promise.all([
+    const [{ startJanitor }, { startKeepAwake }, { forgetLesson }, { forgetSignals }, { forgetLessonPipeline }, { bus }] = await Promise.all([
       import("./lib/server/janitor"),
+      import("./lib/server/keep-awake"),
       import("./lib/server/lessons"),
       import("./lib/server/signals"),
       import("./lib/pipeline"),
@@ -15,5 +17,6 @@ export async function register() {
       forgetLessonPipeline(id);
       bus.forget(id);
     });
+    startKeepAwake();
   }
 }

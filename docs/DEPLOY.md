@@ -50,15 +50,11 @@ The first build takes about 5 minutes. Watch it under **aula**, then **Logs**. W
 
 Back in Render, click **Verify** next to each domain. DNS can take from a few minutes to a few hours. Once verified, Render issues the HTTPS certificate automatically.
 
-## 4. Keep it awake (so judges never wait)
+## 4. Keep it awake (automatic)
 
-Free Render services go to sleep after 15 minutes without visitors, and waking up takes about a minute. A free uptime monitor visits every 5 minutes so it never sleeps. One service running all month is about 744 hours, which fits in Render's 750 free hours.
+Free Render services go to sleep after 15 minutes without visitors, and waking up takes about a minute. Aula prevents that by itself: every 10 minutes the server visits its own health check through its public address (Render sets `RENDER_EXTERNAL_URL`), which counts as a visitor. See `src/lib/server/keep-awake.ts`. One service running all month is about 744 hours, which fits in Render's 750 free hours.
 
-1. Go to **https://uptimerobot.com** and create a free account.
-2. **Add New Monitor**: type **HTTP(s)**, name **Aula**, URL `https://aulaapp.xyz/api/health`, interval **5 minutes**.
-3. Save. The monitor turning green means the site is up.
-
-Until the custom domain works, use your `onrender.com` URL there instead.
+A sleeping server can't wake itself, but it only sleeps if the process stops, and every deploy starts it awake. For extra safety you can also add a free external monitor (for example UptimeRobot, `https://aulaapp.xyz/api/health` every 5 minutes), but it isn't required.
 
 ## 5. Things to know
 
