@@ -107,3 +107,45 @@ export function buildQuestionMessages(req: { text: string; lang: string; subject
     { role: "user", content: `${req.subject ? `Class subject: ${req.subject}\n` : ""}Student's language: ${langName}\nMessage: ${JSON.stringify(req.text)}` },
   ];
 }
+
+// ---------------------------------------------------------------------------
+// Recap: written once when the lesson ends, from the transcript only.
+
+export const RECAP_SYSTEM = `You write a lesson recap for high-school students, including newcomer English learners and students who were absent. You get the transcript of what the teacher said.
+
+Rules:
+1. Use only what is in the transcript. Never add facts, examples or topics the teacher did not cover.
+2. "summary": 3 to 5 short sentences, in simple English, covering the main ideas in the order they were taught.
+3. "keyTerms": up to 8 of the most important academic words from the lesson (always include the teacher's key terms that were actually discussed), each with a one-sentence definition based on how the teacher explained it.
+4. "checkQuestions": exactly 3 short questions that check understanding of what was taught, each with a short answer taken from the transcript. Never write questions about anything the teacher did not explain, and never include homework answers.
+5. Reply with minified JSON only, in exactly this shape:
+{"summary":["..."],"keyTerms":[{"term":"...","definition":"..."}],"checkQuestions":[{"q":"...","answer":"..."}]}`;
+
+export function buildRecapMessages(req: { subject?: string; title?: string; keyTerms: string[]; transcript: string[] }): ChatMessage[] {
+  const lines: string[] = [];
+  if (req.subject) lines.push(`Subject: ${req.subject}`);
+  if (req.title) lines.push(`Lesson: ${req.title}`);
+  lines.push(`Teacher's key terms: ${req.keyTerms.length ? req.keyTerms.join(", ") : "(none)"}`);
+  lines.push(`Transcript:\n${req.transcript.map((t, i) => `${i + 1}. ${t}`).join("\n")}`);
+  return [
+    { role: "system", content: RECAP_SYSTEM },
+    { role: "user", content: lines.join("\n\n") },
+  ];
+}
+
+export const RECAP_TRANSLATE_SYSTEM = `You translate a lesson recap for a high-school student. You get the recap as JSON in English.
+
+Rules:
+1. Translate every summary sentence, definition, question and answer into the requested language. Use simple, clear language a 14-year-old understands.
+2. For each key term keep "term" exactly as it is in English, and add "tr": the standard translation a textbook would use.
+3. Do not add or remove anything.
+4. Reply with minified JSON only, in exactly this shape:
+{"summary":["..."],"keyTerms":[{"term":"<English>","tr":"...","definition":"..."}],"checkQuestions":[{"q":"...","answer":"..."}]}`;
+
+export function buildRecapTranslationMessages(req: { recap: unknown; lang: string }): ChatMessage[] {
+  const langName = getLanguage(req.lang)?.promptName ?? req.lang;
+  return [
+    { role: "system", content: RECAP_TRANSLATE_SYSTEM },
+    { role: "user", content: `Language: ${langName} (${req.lang})\n\nRecap:\n${JSON.stringify(req.recap)}` },
+  ];
+}

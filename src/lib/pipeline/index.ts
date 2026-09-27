@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { chatComplete, createAiClient } from "@/lib/ai/client";
 import { parseModelJson } from "@/lib/ai/json";
 import { buildQuestionMessages, type ChatMessage } from "@/lib/ai/prompts";
-import { QuestionTranslationSchema, type LangTranslation } from "@/lib/ai/schemas";
+import { QuestionTranslationSchema, type LangTranslation, type Recap } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { bus } from "@/lib/realtime/bus";
 import { env } from "@/lib/server/env";
@@ -10,6 +10,7 @@ import { getLesson } from "@/lib/server/lessons";
 import { singleton } from "@/lib/server/singleton";
 import { GlossaryService, type GlossaryEntry } from "./glossary";
 import { Lru } from "./lru";
+import { translateRecap, writeRecap, type RecapDeps } from "./recap";
 import { pickModelFor } from "./routing";
 import { AiScheduler, PreemptedError } from "./scheduler";
 import { LessonTranslator, type CallRecord } from "./translator";
@@ -218,4 +219,93 @@ export function pipelineStats(lessonId: string) {
     scheduler: { inUse: scheduler.inUse, queued: scheduler.queued, running: scheduler.runningPriorities },
     calls: mine.map((c) => ({ ...c, lessonId: undefined })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Recaps
+
+const recapJobs = singleton("recapJobs", () => new Map<string, Promise<void>>());
+
+const recapDeps = (): RecapDeps => ({
+  complete: (model, args, maxTokens) => complete(model, args, maxTokens),
+  schedule,
+  recapModel: { model: env.aiModelRecap, cost: env.aiRecapCost },
+  modelForLang: (lang) => pickModel([lang]),
+  isPreempted: (err) => err instanceof PreemptedError,
+});
+
+// Writes the English recap for an ended lesson, then translates it into every
+// language a student used during the lesson. Safe to call twice.
+export function generateLessonRecap(lessonId: string): Promise<void> {
+  const running = recapJobs.get(lessonId);
+  if (running) return running;
+  const job = (async () => {
+    const lesson = await db.lesson.findUnique({
+      where: { id: lessonId },
+      select: { subject: true, title: true, keyTerms: true, recap: { select: { id: true } }, participants: { select: { lang: true } }, segments: { orderBy: { seq: "asc" }, select: { text: true, fixedText: true } } },
+    });
+    if (!lesson || lesson.recap) return;
+    if (!lesson.segments.length || !aiEnabled()) {
+      await db.lesson.update({ where: { id: lessonId }, data: { recapStatus: lesson.segments.length ? "FAILED" : "NONE" } });
+      bus.publish(lessonId, "recap", { status: lesson.segments.length ? "FAILED" : "NONE" });
+      return;
+    }
+    await db.lesson.update({ where: { id: lessonId }, data: { recapStatus: "GENERATING" } });
+    bus.publish(lessonId, "recap", { status: "GENERATING" });
+    let content: Recap | null = null;
+    try {
+      content = await writeRecap(recapDeps(), {
+        subject: lesson.subject ?? undefined,
+        title: lesson.title ?? undefined,
+        keyTerms: lesson.keyTerms,
+        transcript: lesson.segments.map((s) => s.fixedText ?? s.text),
+      });
+    } catch (err) {
+      log("recap", (err as Error).message);
+    }
+    if (!content) {
+      await db.lesson.update({ where: { id: lessonId }, data: { recapStatus: "FAILED" } });
+      bus.publish(lessonId, "recap", { status: "FAILED" });
+      return;
+    }
+    const recap = await db.recap.create({ data: { lessonId, content, model: env.aiModelRecap } });
+    await db.lesson.update({ where: { id: lessonId }, data: { recapStatus: "READY" } });
+    bus.publish(lessonId, "recap", { status: "READY", recapId: recap.id });
+    const langs = [...new Set(lesson.participants.map((p) => p.lang))].filter((l) => l !== "en");
+    for (const lang of langs) await ensureRecapTranslation(recap.id, lang);
+  })()
+    .catch((err) => log("recap", (err as Error).message))
+    .finally(() => recapJobs.delete(lessonId));
+  recapJobs.set(lessonId, job);
+  return job;
+}
+
+const recapTranslationJobs = singleton("recapTranslationJobs", () => new Map<string, Promise<boolean>>());
+
+// Translates a recap into one language if it isn't already. Used after a
+// lesson (for the languages in the room) and on demand, when someone opens a
+// "What you missed" link in a new language.
+export function ensureRecapTranslation(recapId: string, lang: string): Promise<boolean> {
+  const key = `${recapId}|${lang}`;
+  const running = recapTranslationJobs.get(key);
+  if (running) return running;
+  const job = (async () => {
+    const existing = await db.recapTranslation.findUnique({ where: { recapId_lang: { recapId, lang } }, select: { id: true } });
+    if (existing) return true;
+    const recap = await db.recap.findUnique({ where: { id: recapId }, select: { content: true } });
+    if (!recap || !aiEnabled()) return false;
+    const tr = await translateRecap(recapDeps(), recap.content as Recap, lang).catch((err) => {
+      log("recap translation", lang, (err as Error).message);
+      return null;
+    });
+    if (!tr) return false;
+    await db.recapTranslation.upsert({ where: { recapId_lang: { recapId, lang } }, create: { recapId, lang, content: tr }, update: { content: tr } });
+    return true;
+  })().finally(() => recapTranslationJobs.delete(key));
+  recapTranslationJobs.set(key, job);
+  return job;
+}
+
+export function recapTranslationPending(recapId: string, lang: string): boolean {
+  return recapTranslationJobs.has(`${recapId}|${lang}`);
 }

@@ -46,3 +46,21 @@ export const GlossaryResponseSchema = z.object({
 export type GlossaryResponse = z.infer<typeof GlossaryResponseSchema>;
 
 export const QuestionTranslationSchema = z.object({ en: z.string().trim().min(1).max(1000) });
+
+// Lesson recap, written in English from the transcript when a lesson ends.
+export const RecapSchema = z.object({
+  summary: z.array(z.string().trim().min(1).max(400)).min(2).max(6),
+  keyTerms: z.array(z.object({ term: z.string().trim().min(1).max(80), definition: z.string().trim().min(1).max(300) })).max(10),
+  checkQuestions: z.array(z.object({ q: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(400) })).min(1).max(5),
+});
+
+// The same recap in a student's language. Key terms keep their English form
+// (so students learn it) plus the translation.
+export const RecapTranslationSchema = z.object({
+  summary: z.array(z.string().trim().min(1).max(600)).min(1).max(6),
+  keyTerms: z.array(z.object({ term: z.string().trim().min(1).max(80), tr: z.string().trim().min(1).max(120), definition: z.string().trim().min(1).max(400) })).max(10),
+  checkQuestions: z.array(z.object({ q: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(600) })).min(1).max(5),
+});
+
+export type Recap = z.infer<typeof RecapSchema>;
+export type RecapTranslation = z.infer<typeof RecapTranslationSchema>;

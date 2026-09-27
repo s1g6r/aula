@@ -1,3 +1,4 @@
+import { generateLessonRecap } from "@/lib/pipeline";
 import { bus } from "@/lib/realtime/bus";
 import { endLesson, requireTeacherLesson } from "@/lib/server/lessons";
 
@@ -9,6 +10,7 @@ export async function POST(_request: Request, ctx: RouteContext<"/api/lessons/[i
   if (access.lesson.status === "LIVE") {
     await endLesson(id);
     bus.publish(id, "lesson-ended", {});
+    void generateLessonRecap(id);
   }
   return Response.json({ ok: true });
 }
