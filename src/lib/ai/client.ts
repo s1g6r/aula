@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { jsonEndDetector } from "./json";
 import type { ChatMessage } from "./prompts";
 
 // Featherless speaks the OpenAI API, so we use the official client pointed at
@@ -61,6 +62,8 @@ export async function chatComplete(
   const marks: [number, number][] = [];
   let promptTokens: number | undefined;
   let completionTokens: number | undefined;
+  // In JSON mode, stop as soon as the object is complete (see jsonEndDetector).
+  const jsonDone = opts.jsonMode ? jsonEndDetector() : null;
 
   for await (const chunk of stream) {
     const delta = chunk.choices[0]?.delta?.content ?? "";
@@ -70,6 +73,13 @@ export async function chatComplete(
       text += delta;
       marks.push([text.length, now]);
       opts.onText?.(text);
+      // Stop when the JSON is complete, or when the model has started
+      // writing nothing but whitespace (it sometimes loops like that in JSON
+      // mode until it runs out of tokens). The caller sees a short reply.
+      if (jsonDone?.(delta) || /\s{24}$/.test(text)) {
+        stream.controller.abort();
+        break;
+      }
     }
     if (chunk.usage) {
       promptTokens = chunk.usage.prompt_tokens;

@@ -142,3 +142,30 @@ export function parseModelJson<T>(raw: string, schema: z.ZodType<T>): ParseResul
   }
   return { ok: true, data: result.data };
 }
+
+// Watches a streamed reply and says when its first JSON object (or array)
+// has closed. Models sometimes keep writing after that (spaces, repeats) until
+// they hit their token limit; we stop reading instead of waiting for them.
+export function jsonEndDetector(): (chunk: string) => boolean {
+  let depth = 0;
+  let started = false;
+  let inString = false;
+  let escaped = false;
+  return (chunk) => {
+    for (const ch of chunk) {
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') {
+        inString = started;
+      } else if (ch === "{" || ch === "[") {
+        depth++;
+        started = true;
+      } else if ((ch === "}" || ch === "]") && started) {
+        if (--depth === 0) return true;
+      }
+    }
+    return false;
+  };
+}

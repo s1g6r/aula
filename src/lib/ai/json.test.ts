@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractJson, parseModelJson, scanTranslationStream } from "./json";
+import { extractJson, jsonEndDetector, parseModelJson, scanTranslationStream } from "./json";
 import { RecapSchema, TranslationResponseSchema } from "./schemas";
 
 const good = {
@@ -135,5 +135,20 @@ describe("RecapSchema", () => {
 
   it("still rejects a one-sentence summary", () => {
     expect(RecapSchema.safeParse({ ...base, summary: ["Plants make food."] }).success).toBe(false);
+  });
+});
+
+describe("jsonEndDetector", () => {
+  it("fires when the first object closes, across chunks", () => {
+    const done = jsonEndDetector();
+    expect(done('{"a":[1,{"b":"x}y"}')).toBe(false);
+    expect(done("]")).toBe(false);
+    expect(done('}   \n\t  ')).toBe(true);
+  });
+
+  it("ignores braces and escaped quotes inside strings, and text before the JSON", () => {
+    const done = jsonEndDetector();
+    expect(done('```json\n{"s":"a \\"}\\" b"')).toBe(false);
+    expect(done("}")).toBe(true);
   });
 });
