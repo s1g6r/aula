@@ -5,8 +5,12 @@ import "./globals.css";
 // Headings: Fraunces, a warm, soft serif. Everything else: the Noto family,
 // which covers every script our students read. Arabic and Chinese load only
 // when a page actually shows those characters.
-const display = Fraunces({ variable: "--font-display", subsets: ["latin"], axes: ["SOFT", "opsz"] });
-const body = Noto_Sans({ variable: "--font-body", subsets: ["latin", "latin-ext", "cyrillic", "vietnamese"] });
+// Only what the first paint needs is preloaded: one heading weight, and the
+// Latin letters of the body font. Other alphabets (Cyrillic, Vietnamese,
+// Arabic, Chinese) load only on pages that use them.
+const display = Fraunces({ variable: "--font-display", subsets: ["latin"], weight: "600" });
+const body = Noto_Sans({ variable: "--font-body", subsets: ["latin"] });
+const bodyExtra = Noto_Sans({ variable: "--font-body-extra", subsets: ["latin-ext", "cyrillic", "vietnamese"], preload: false });
 const arabic = Noto_Sans_Arabic({ variable: "--font-arabic", subsets: ["arabic"], preload: false });
 const cjk = Noto_Sans_SC({ variable: "--font-cjk", preload: false });
 
@@ -25,7 +29,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${arabic.variable} ${cjk.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${bodyExtra.variable} ${arabic.variable} ${cjk.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
