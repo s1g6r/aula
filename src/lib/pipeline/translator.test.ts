@@ -343,6 +343,21 @@ describe("LessonTranslator", () => {
     expect(h.events.map((e) => e.type)).toEqual(["translation", "translation"]);
   });
 
+  it("tells the model the glossary's word for each key term in the line", async () => {
+    const asked: [string[], string[]][] = [];
+    const h = harness({
+      termTranslations: async (langs, terms) => {
+        asked.push([langs, terms]);
+        return { ar: { photosynthesis: "التمثيل الضوئي" } };
+      },
+    });
+    h.t.enqueue({ id: "s1", seq: 1, text: "Photosynthesis is how plants make food." });
+    await tick();
+    await tick();
+    expect(asked).toEqual([[["es", "ar"], ["photosynthesis"]]]);
+    expect(h.calls[0].messages.at(-1)!.content).toContain("Key terms to use:\n- ar: photosynthesis = التمثيل الضوئي");
+  });
+
   it("reports each call's timing and outcome", async () => {
     let now = 1000;
     const records: import("./translator").CallRecord[] = [];

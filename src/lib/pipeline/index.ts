@@ -125,6 +125,12 @@ async function translatorFor(lessonId: string): Promise<LessonTranslator | null>
       await db.segment.update({ where: { id: segmentId }, data: { fixedText: text } });
     },
     cache,
+    termTranslations: async (langs, terms) => {
+      const rows = await db.term.findMany({ where: { lessonId, lang: { in: langs }, en: { in: terms.map((t) => t.toLowerCase()) } }, select: { lang: true, en: true, tr: true } });
+      const out: Record<string, Record<string, string>> = {};
+      for (const r of rows) (out[r.lang] ??= {})[r.en] = r.tr;
+      return out;
+    },
     stallMs: env.aiTimeoutMs,
     concurrency: env.lessonConcurrency,
     onLatency: (_lang, ms) => {

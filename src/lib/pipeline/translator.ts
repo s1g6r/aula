@@ -2,6 +2,7 @@ import { scanTranslationStream } from "@/lib/ai/json";
 import { buildTranslationMessages, type ChatMessage } from "@/lib/ai/prompts";
 import { LiveLangSchema, type LangTranslation } from "@/lib/ai/schemas";
 import type { LanguageCode } from "@/lib/languages";
+import { findKeyTerms } from "@/lib/terms";
 import { acceptFix } from "./fix";
 import { translationCacheKey, type Lru } from "./lru";
 import type { ModelChoice } from "./routing";
@@ -42,6 +43,9 @@ export type TranslatorDeps = {
   saveTranslation: (segmentId: string, lang: string, tr: LangTranslation, latencyMs: number, model: string) => Promise<void>;
   saveFix: (segmentId: string, text: string) => Promise<void>;
   cache: Lru<string, LangTranslation>;
+  // The glossary's translations of these key terms, per language (see
+  // TranslationRequest.termTranslations).
+  termTranslations?: (langs: string[], terms: string[]) => Promise<Record<string, Record<string, string>>>;
   now?: () => number;
   // Give up if no new text arrives for this long.
   stallMs?: number;
@@ -102,7 +106,7 @@ export class LessonTranslator {
   private lanes = new Map<string, PendingSegment[]>();
   private inFlight = 0;
   private history: PendingSegment[] = [];
-  private readonly d: Required<Omit<TranslatorDeps, "onLatency" | "onError" | "onCall">> & Pick<TranslatorDeps, "onLatency" | "onError" | "onCall">;
+  private readonly d: Required<Omit<TranslatorDeps, "onLatency" | "onError" | "onCall" | "termTranslations">> & Pick<TranslatorDeps, "onLatency" | "onError" | "onCall" | "termTranslations">;
 
   constructor(deps: TranslatorDeps) {
     this.d = { now: Date.now, stallMs: 8000, maxMs: 15_000, maxLagMs: 20_000, maxBatch: 4, maxBatchTokens: 360, concurrency: 1, ...deps };
@@ -228,10 +232,13 @@ export class LessonTranslator {
     const callLangs = langs.filter((l) => segs.some((s) => needed.get(s.seq)!.has(l)));
     const firstIdx = this.history.findIndex((h) => h.seq === segs[0].seq);
     const context = (firstIdx > 0 ? this.history.slice(Math.max(0, firstIdx - 2), firstIdx) : []).map((h) => h.text);
+    const mentioned = [...new Set(segs.flatMap((s) => findKeyTerms(s.text, this.d.lesson.keyTerms)))];
+    const termTranslations = mentioned.length && this.d.termTranslations ? await this.d.termTranslations(callLangs, mentioned).catch(() => ({})) : {};
     const messages = buildTranslationMessages({
       subject: this.d.lesson.subject ?? undefined,
       title: this.d.lesson.title ?? undefined,
       keyTerms: this.d.lesson.keyTerms,
+      termTranslations,
       context,
       langs: callLangs as LanguageCode[],
       segments: segs.map((s) => ({ seq: s.seq, text: s.text })),

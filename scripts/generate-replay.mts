@@ -46,8 +46,14 @@ for (const s of DEMO_STUDENTS) {
   phones[s.lang] = page;
   log("joined", s.nickname, s.lang);
 }
-log("letting glossaries start before the lesson...");
-await sleep(20_000);
+// Students join before the teacher starts, so the definitions are written
+// while the class settles in (and the lesson's key terms use them).
+log("waiting for every language's definitions before the lesson...");
+for (let i = 0; i < 60; i++) {
+  const terms = await db.term.groupBy({ by: ["lang"], where: { lessonId }, _count: true });
+  if (DEMO_STUDENTS.every((s) => (terms.find((t) => t.lang === s.lang)?._count ?? 0) >= DEMO_LESSON.keyTerms.length)) break;
+  await sleep(3000);
+}
 
 // The lesson, at speaking pace.
 const box = teacher.getByLabel("Type a sentence to send to students");

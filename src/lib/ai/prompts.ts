@@ -23,12 +23,16 @@ export type TranslationRequest = {
   // The lesson's key terms: they help the model repair misheard words and
   // pick the standard textbook translation.
   keyTerms: string[];
+  // The glossary's translation of the key terms these segments mention, per
+  // language, so every line uses the same textbook word (and phones can
+  // highlight it). Missing while a glossary is still being written.
+  termTranslations?: Record<string, Record<string, string>>;
 };
 
 export const TRANSLATE_SYSTEM = `You are Aula's live classroom translator. A teacher is speaking English to a class that includes newcomer English learners. You receive speech-recognition transcript segments and translate each one into one or more languages.
 
 Rules:
-1. Translate every segment into every requested language. Use clear, natural, spoken language a 14-year-old understands. Keep numbers, formulas, units and names as they are. For the lesson's key terms, use the standard word a textbook in that language would use.
+1. Translate every segment into every requested language. Use clear, natural, spoken language a 14-year-old understands. Keep numbers, formulas, units and names as they are. For the lesson's key terms, use the translation listed under "Key terms to use" when there is one, otherwise the standard word a textbook in that language would use. Never leave a key term in English inside a translation, or spell it in another language.
 2. Speech recognition makes mistakes: a word replaced by one that sounds alike (for example "sell membrane" should be "cell membrane"). Translate what the teacher meant. Only if you repaired a misheard word, add the English sentence with just that word corrected as "fix" after the translations. Never rephrase or improve the teacher's wording. If nothing was misheard, do not write a "fix" key at all.
 3. Only translate. Never add explanations, answers, opinions or content that is not in the segment.
 4. Write the languages in the order they are listed.
@@ -41,6 +45,11 @@ export function buildTranslationMessages(req: TranslationRequest): ChatMessage[]
   if (req.title) lines.push(`Lesson: ${req.title}`);
   lines.push(`Lesson key terms: ${req.keyTerms.length ? req.keyTerms.join(", ") : "(none)"}`);
   lines.push(`Languages:\n${req.langs.map((code) => `- ${code}: ${getLanguage(code)?.promptName ?? code}`).join("\n")}`);
+  const termLines = req.langs
+    .map((code) => [code, Object.entries(req.termTranslations?.[code] ?? {})] as const)
+    .filter(([, pairs]) => pairs.length)
+    .map(([code, pairs]) => `- ${code}: ${pairs.map(([en, tr]) => `${en} = ${tr}`).join("; ")}`);
+  if (termLines.length) lines.push(`Key terms to use:\n${termLines.join("\n")}`);
   if (req.context.length) {
     lines.push(`Earlier in the lesson (context only, do not translate):\n${req.context.map((c) => `"${c}"`).join("\n")}`);
   }
