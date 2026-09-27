@@ -48,7 +48,14 @@ export default async function ReviewPage(props: PageProps<"/teach/[id]/review">)
   const moments = [...points].filter((p) => p.lost > 0).sort((a, b) => b.lost - a.lost || a.seq - b.seq).slice(0, 3);
   const slower = new Set(lesson.signals.filter((s) => s.type === "SLOWER").map((s) => s.participantId)).size;
   const langCounts = lesson.participants.reduce<Record<string, number>>((m, p) => ((m[p.lang] = (m[p.lang] ?? 0) + 1), m), {});
-  const latencies = await db.translation.findMany({ where: { segment: { lessonId: id }, latencyMs: { not: null } }, select: { latencyMs: true } });
+  const [latencies, flaggedRows] = await Promise.all([
+    db.translation.findMany({ where: { segment: { lessonId: id }, latencyMs: { not: null } }, select: { latencyMs: true } }),
+    db.translation.findMany({
+      where: { segment: { lessonId: id }, flags: { some: {} } },
+      select: { lang: true, text: true, _count: { select: { flags: true } }, segment: { select: { seq: true, text: true, fixedText: true } } },
+      orderBy: { segment: { seq: "asc" } },
+    }),
+  ]);
   const sorted = latencies.map((l) => l.latencyMs!).sort((a, b) => a - b);
   const p50 = sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : null;
 
@@ -162,6 +169,31 @@ export default async function ReviewPage(props: PageProps<"/teach/[id]/review">)
           )}
         </section>
       </div>
+
+      {flaggedRows.length > 0 && (
+        <section aria-labelledby="flags-h" className="mt-6 rounded-2xl border bg-card p-6">
+          <h2 id="flags-h" className="text-xl font-semibold">
+            Translations students flagged
+          </h2>
+          <p className="mt-1 mb-4 text-sm text-ink-2">Students tapped &ldquo;this translation looks wrong&rdquo; on these lines. Worth checking with them, or saying again more simply.</p>
+          <ul className="space-y-3">
+            {flaggedRows.map((f) => {
+              const l = getLanguage(f.lang);
+              return (
+                <li key={`${f.segment.seq}|${f.lang}`} className="rounded-xl border p-3">
+                  <p>{f.segment.fixedText ?? f.segment.text}</p>
+                  <p lang={f.lang} dir={l?.dir} className="mt-1 text-sm text-ink-2">
+                    {f.text}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-3">
+                    {l?.name ?? f.lang} · flagged by {f._count.flags} {f._count.flags === 1 ? "student" : "students"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="privacy-h" className="mt-6 rounded-2xl border bg-card p-6">
         <h2 id="privacy-h" className="text-xl font-semibold">
