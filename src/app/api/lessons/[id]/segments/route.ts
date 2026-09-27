@@ -4,11 +4,14 @@ import { bus } from "@/lib/realtime/bus";
 import { jsonError, readJson } from "@/lib/server/http";
 import { translateSegment } from "@/lib/pipeline";
 import { nextSeq, requireTeacherLesson } from "@/lib/server/lessons";
+import { repairKeyTerms } from "@/lib/terms";
 
 // POST /api/lessons/:id/segments { text, startedAt }
 // A finished sentence from the teacher (from speech recognition or typed).
-// Saved, then broadcast in English right away. Translations for the
-// languages in the room follow, streamed in as each one is ready.
+// Saved, then broadcast in English right away. If speech recognition
+// misheard one of the teacher's key terms ("sell membrane"), the repaired
+// sentence is shown and translated. Translations for the languages in the
+// room follow, streamed in as each one is ready.
 
 const Body = z.object({
   text: z.string().trim().min(1).max(2000),
@@ -29,8 +32,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/lessons/[id
   const claimed = body.data.startedAt ? new Date(body.data.startedAt) : now;
   const startedAt = Math.abs(claimed.getTime() - now.getTime()) > 120_000 ? now : claimed;
 
-  const segment = await db.segment.create({ data: { lessonId: id, seq, text: body.data.text, startedAt }, select: { id: true } });
-  bus.publish(id, "segment", { seq, text: body.data.text, startedAt: startedAt.toISOString() });
-  void translateSegment(id, { id: segment.id, seq, text: body.data.text });
+  const fixedText = repairKeyTerms(body.data.text, access.lesson.keyTerms);
+  const segment = await db.segment.create({ data: { lessonId: id, seq, text: body.data.text, fixedText, startedAt }, select: { id: true } });
+  bus.publish(id, "segment", { seq, text: body.data.text, fixedText, startedAt: startedAt.toISOString() });
+  void translateSegment(id, { id: segment.id, seq, text: fixedText ?? body.data.text });
   return Response.json({ seq });
 }
