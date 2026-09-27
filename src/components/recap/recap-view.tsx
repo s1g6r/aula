@@ -117,74 +117,7 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
         </p>
       )}
 
-      <section aria-labelledby="learned" className="mt-10">
-        <h2 id="learned" className="text-2xl font-semibold" lang={lang}>
-          {t.whatWeLearned}
-        </h2>
-        <ol className="mt-4 space-y-3">
-          {summary.map((line, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-coral-soft text-sm font-semibold text-coral">{i + 1}</span>
-              <p lang={shownLang} dir={shownDir} className="text-lg leading-relaxed">
-                {line}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {keyTerms.length > 0 && (
-        <section aria-labelledby="words" className="mt-12">
-          <h2 id="words" className="text-2xl font-semibold" lang={lang}>
-            {t.keyWords}
-          </h2>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {keyTerms.map((k) => (
-              <li key={k.term} className="rounded-2xl border bg-card p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <p lang="en" className="font-display text-xl font-semibold">
-                    {k.term}
-                  </p>
-                  <button onClick={() => speak(k.term)} className="rounded-full bg-secondary p-2" aria-label={`${t.hearIt}: ${k.term}`}>
-                    <Volume2 className="size-4" aria-hidden />
-                  </button>
-                </div>
-                {k.tr && (
-                  <p lang={shownLang} dir={shownDir} className="mt-1 font-medium">
-                    {k.tr}
-                  </p>
-                )}
-                <p lang={shownLang} dir={shownDir} className="mt-1 text-ink-2">
-                  {k.definition}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section aria-labelledby="check" className="mt-12">
-        <h2 id="check" className="text-2xl font-semibold" lang={lang}>
-          {t.checkYourself}
-        </h2>
-        <ul className="mt-4 space-y-3">
-          {questions.map((q, i) => (
-            <li key={i} className="rounded-2xl border bg-card p-4">
-              <p lang={shownLang} dir={shownDir} className="text-lg font-medium">
-                {q.q}
-              </p>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-sm font-medium text-coral" lang={lang}>
-                  {t.showAnswer}
-                </summary>
-                <p lang={shownLang} dir={shownDir} className="mt-2 text-ink-2">
-                  {q.answer}
-                </p>
-              </details>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <RecapBody summary={summary} keyTerms={keyTerms} questions={questions} shownLang={shownLang} shownDir={shownDir} lang={lang} />
 
       <details className="mt-12 rounded-2xl border bg-card p-4">
         <summary className="cursor-pointer text-lg font-semibold" lang={lang}>
@@ -213,5 +146,96 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
         </Link>: live classroom captions in every student&rsquo;s language.
       </footer>
     </main>
+  );
+}
+
+export type RecapBodyProps = {
+  summary: string[];
+  keyTerms: { term: string; tr: string | null; definition: string }[];
+  questions: { q: string; answer: string }[];
+  // Language the content is in (falls back to English while translating).
+  shownLang: string;
+  shownDir: "ltr" | "rtl";
+  // The reader's language, for headings.
+  lang: string;
+  compact?: boolean;
+};
+
+// The recap itself: what we learned, key words, check yourself. Shared by
+// the "What you missed" page and the Demo Replay's phone.
+export function RecapBody({ summary, keyTerms, questions, shownLang, shownDir, lang, compact = false }: RecapBodyProps) {
+  const t = studentStrings(lang);
+  return (
+    <>
+      <section aria-labelledby="learned" className={compact ? "mt-4" : "mt-10"}>
+        <h2 id="learned" className="text-2xl font-semibold" lang={lang}>
+          {t.whatWeLearned}
+        </h2>
+        <ol className="mt-4 space-y-3">
+          {summary.map((line, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-coral-soft text-sm font-semibold text-coral">{i + 1}</span>
+              <p lang={shownLang} dir={shownDir} className="text-lg leading-relaxed">
+                {line}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {keyTerms.length > 0 && (
+        <section aria-labelledby="words" className={compact ? "mt-8" : "mt-12"}>
+          <h2 id="words" className="text-2xl font-semibold" lang={lang}>
+            {t.keyWords}
+          </h2>
+          <ul className={compact ? "mt-3 grid gap-3" : "mt-4 grid gap-3 sm:grid-cols-2"}>
+            {keyTerms.map((k) => (
+              <li key={k.term} className="rounded-2xl border bg-card p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p lang="en" className="font-display text-xl font-semibold">
+                    {k.term}
+                  </p>
+                  <button onClick={() => speak(k.term)} className="rounded-full bg-secondary p-2" aria-label={`${t.hearIt}: ${k.term}`}>
+                    <Volume2 className="size-4" aria-hidden />
+                  </button>
+                </div>
+                {k.tr && (
+                  <p lang={shownLang} dir={shownDir} className="mt-1 font-medium">
+                    {k.tr}
+                  </p>
+                )}
+                <p lang={shownLang} dir={shownDir} className="mt-1 text-ink-2">
+                  {k.definition}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section aria-labelledby="check" className={compact ? "mt-8" : "mt-12"}>
+        <h2 id="check" className="text-2xl font-semibold" lang={lang}>
+          {t.checkYourself}
+        </h2>
+        <ul className="mt-4 space-y-3">
+          {questions.map((q, i) => (
+            <li key={i} className="rounded-2xl border bg-card p-4">
+              <p lang={shownLang} dir={shownDir} className="text-lg font-medium">
+                {q.q}
+              </p>
+              <details className="mt-2">
+                <summary className="cursor-pointer text-sm font-medium text-coral" lang={lang}>
+                  {t.showAnswer}
+                </summary>
+                <p lang={shownLang} dir={shownDir} className="mt-2 text-ink-2">
+                  {q.answer}
+                </p>
+              </details>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+    </>
   );
 }

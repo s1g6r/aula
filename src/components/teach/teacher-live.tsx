@@ -11,9 +11,9 @@ import { applyCaptionEvent, emptyCaptions, type CaptionEvent } from "@/lib/capti
 import { getLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 
-type Room = { students: number; langs: Record<string, number>; participants: { id: string; nickname: string; lang: string; muted: boolean }[] };
-type Signals = { lost: number; slower: number; anchor: { seq: number; count: number } | null; anchorText: string | null; totals: Record<number, number> };
-type Question = { id: string; nickname: string; participantId: string; lang: string; original: string; english: string | null; translating: boolean; answered: boolean; at: string };
+export type Room = { students: number; langs: Record<string, number>; participants: { id: string; nickname: string; lang: string; muted: boolean }[] };
+export type Signals = { lost: number; slower: number; anchor: { seq: number; count: number } | null; anchorText: string | null; totals: Record<number, number> };
+export type Question = { id: string; nickname: string; participantId: string; lang: string; original: string; english: string | null; translating: boolean; answered: boolean; at: string };
 
 const NO_SIGNALS: Signals = { lost: 0, slower: 0, anchor: null, anchorText: null, totals: {} };
 
@@ -233,7 +233,7 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
   );
 }
 
-function ConnectionPill({ status, ended, startedAt }: { status: string; ended: boolean; startedAt: string }) {
+export function ConnectionPill({ status, ended, startedAt }: { status: string; ended: boolean; startedAt: string }) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (ended) return;
@@ -256,7 +256,7 @@ function ConnectionPill({ status, ended, startedAt }: { status: string; ended: b
   );
 }
 
-function Transcript({
+export function Transcript({
   lines,
   sending,
   interim,
@@ -454,7 +454,7 @@ function JoinCard({ code, joinUrl, qrSvg }: { code: string; joinUrl: string; qrS
   );
 }
 
-function RoomCard({ room }: { room: Room }) {
+export function RoomCard({ room }: { room: Room }) {
   const langs = useMemo(() => Object.entries(room.langs).sort((a, b) => b[1] - a[1]), [room.langs]);
   return (
     <section aria-labelledby="room-h" className="rounded-2xl border bg-card p-5">
@@ -496,7 +496,7 @@ function RoomCard({ room }: { room: Room }) {
   );
 }
 
-function PulseCard({ signals }: { signals: Signals }) {
+export function PulseCard({ signals }: { signals: Signals }) {
   const quiet = signals.lost === 0 && signals.slower === 0;
   const snippet = signals.anchorText && signals.anchorText.length > 90 ? `${signals.anchorText.slice(0, 87)}...` : signals.anchorText;
   return (
@@ -542,7 +542,7 @@ function PulseCard({ signals }: { signals: Signals }) {
   );
 }
 
-function QuestionsCard({ lessonId, questions }: { lessonId: string; questions: Question[] }) {
+export function QuestionsCard({ lessonId, questions, readOnly = false }: { lessonId: string; questions: Question[]; readOnly?: boolean }) {
   const open = questions.filter((q) => !q.answered).length;
   // Unanswered first, oldest first; answered ones sink to the bottom.
   const ordered = [...questions].sort((a, b) => Number(a.answered) - Number(b.answered) || a.at.localeCompare(b.at));
@@ -558,7 +558,7 @@ function QuestionsCard({ lessonId, questions }: { lessonId: string; questions: Q
       ) : (
         <ul className="mt-3 max-h-[45vh] space-y-3 overflow-y-auto">
           {ordered.map((q) => (
-            <QuestionItem key={q.id} lessonId={lessonId} q={q} />
+            <QuestionItem key={q.id} lessonId={lessonId} q={q} readOnly={readOnly} />
           ))}
         </ul>
       )}
@@ -566,7 +566,7 @@ function QuestionsCard({ lessonId, questions }: { lessonId: string; questions: Q
   );
 }
 
-function QuestionItem({ lessonId, q }: { lessonId: string; q: Question }) {
+function QuestionItem({ lessonId, q, readOnly }: { lessonId: string; q: Question; readOnly: boolean }) {
   const [confirmMute, setConfirmMute] = useState(false);
   const lang = getLanguage(q.lang);
   const time = new Date(q.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -587,7 +587,7 @@ function QuestionItem({ lessonId, q }: { lessonId: string; q: Question }) {
       <p className="mt-1.5 text-xs text-ink-3">
         {q.nickname} · {lang?.name ?? "English"} · {time}
       </p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      {!readOnly && <div className="mt-2 flex flex-wrap gap-2">
         {q.answered ? (
           <span className="flex items-center gap-1 text-xs font-medium text-sage">
             <Check className="size-3.5" aria-hidden /> Answered
@@ -612,7 +612,7 @@ function QuestionItem({ lessonId, q }: { lessonId: string; q: Question }) {
         >
           <VolumeX aria-hidden /> {confirmMute ? `Hide all from ${q.nickname}?` : "Mute"}
         </Button>
-      </div>
+      </div>}
     </li>
   );
 }

@@ -20,7 +20,10 @@ export default function Home() {
           The teacher talks. Each student follows on their own phone, in their own language, and can quietly say &ldquo;I&rsquo;m lost&rdquo;.
         </p>
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          <GuestButton />
+          <Link href="/demo" className="inline-flex h-12 items-center rounded-lg bg-coral px-6 text-base font-semibold text-primary-foreground hover:bg-coral/90">
+            Watch a live demo
+          </Link>
+          <GuestButton className="bg-ink text-paper hover:bg-ink/90" />
           <Link
             href="/join"
             className="inline-flex h-12 items-center rounded-lg border border-ink/15 bg-card px-6 text-base font-medium hover:bg-secondary"
