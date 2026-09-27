@@ -22,7 +22,7 @@ test("public pages have no WCAG A/AA violations", async ({ page }) => {
 
 test("teacher, student and projector screens have no WCAG A/AA violations", async ({ browser }) => {
   const { page: teacher, code } = await startGuestLesson(browser);
-  const student = await joinAsStudent(browser, code, "Ana", /^Español$/);
+  const student = await joinAsStudent(browser, code, "Ana", "es");
   await say(teacher, "Today we are talking about photosynthesis.");
   await expect(student.locator("ol p[lang=es]").first()).toBeVisible({ timeout: 10_000 });
   await audit(teacher, "teacher live");

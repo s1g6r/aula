@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
+import { captions, joinAsStudent, S, say, startGuestLesson } from "./helpers";
 
 // Runs a short real lesson against the real AI provider and prints timings.
 // Skipped unless REAL_AI=1, since it costs real requests:
@@ -19,10 +19,10 @@ const pct = (xs: number[], p: number) => [...xs].sort((a, b) => a - b)[Math.min(
 
 // Speaks each sentence, waits until every phone shows it translated, and
 // reports how long each language took.
-async function runLesson(browser: import("@playwright/test").Browser, phones: [string, RegExp][], gapMs: number) {
+async function runLesson(browser: import("@playwright/test").Browser, phones: string[], gapMs: number) {
   const { page: teacher, code } = await startGuestLesson(browser);
   const joined = [];
-  for (const [lang, label] of phones) joined.push({ lang, page: await joinAsStudent(browser, code, `S-${lang}`, label) });
+  for (const lang of phones) joined.push({ lang, page: await joinAsStudent(browser, code, `S-${lang}`, lang) });
   await teacher.waitForTimeout(8000); // students settle in; glossaries build before the teacher starts
   const all: Record<string, number[]> = {};
   for (const sentence of SENTENCES) {
@@ -46,13 +46,13 @@ async function runLesson(browser: import("@playwright/test").Browser, phones: [s
 }
 
 test("fast path: Spanish and Arabic phones", async ({ browser }) => {
-  await runLesson(browser, [["es", /^Español$/], ["ar", /^العربية$/]], 5000);
+  await runLesson(browser, ["es", "ar"], 5000);
 });
 
 test("routed path: Spanish and Somali phones, plus a glossary definition", async ({ browser }) => {
-  const [spanish] = await runLesson(browser, [["es", /^Español$/], ["so", /^Soomaali$/]], 5000);
+  const [spanish] = await runLesson(browser, ["es", "so"], 5000);
   await captions(spanish.page).getByRole("button", { name: /fotosíntesis/i }).first().click();
   const sheet = spanish.page.getByRole("dialog");
-  await expect(sheet.getByText("The definition is on its way...")).toHaveCount(0, { timeout: 60_000 });
+  await expect(sheet.getByText(S("es").definitionComing)).toHaveCount(0, { timeout: 60_000 });
   console.log("\nGlossary (es):", (await sheet.innerText()).replace(/\n/g, " | "));
 });

@@ -1,4 +1,13 @@
 import { devices, expect, type Browser, type Page } from "@playwright/test";
+import { studentStrings } from "../src/i18n/student";
+import { getLanguage } from "../src/lib/languages";
+
+// The student interface in a given language: tests click buttons by the
+// words a student in that language actually sees.
+export const S = (lang: string) => studentStrings(lang);
+export const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// "Wait {s}s" -> a regex matching "Wait 17s" in that language.
+export const waitRe = (lang: string) => new RegExp(escapeRe(S(lang).waitSeconds).replace("\\{s\\}", "\\d+"));
 
 export async function startGuestLesson(browser: Browser): Promise<{ page: Page; code: string }> {
   const ctx = await browser.newContext({ permissions: ["microphone"] });
@@ -14,15 +23,16 @@ export async function startGuestLesson(browser: Browser): Promise<{ page: Page; 
   return { page, code };
 }
 
-export async function joinAsStudent(browser: Browser, code: string, nickname: string, language: RegExp): Promise<Page> {
+export async function joinAsStudent(browser: Browser, code: string, nickname: string, lang: string): Promise<Page> {
   const ctx = await browser.newContext({ ...devices["Pixel 7"] });
   const page = await ctx.newPage();
   await page.goto(`/join/${code}`);
   await page.getByLabel("Your name or a nickname").fill(nickname);
-  await page.getByText(language).click();
+  const label = lang === "en" ? "English" : getLanguage(lang)!.native;
+  await page.getByText(new RegExp(`^${escapeRe(label)}$`)).click();
   await page.getByRole("button", { name: "Join lesson" }).click();
   await page.waitForURL(new RegExp(`/l/${code}$`));
-  await expect(page.getByRole("banner").getByRole("status")).toHaveText(/Live/);
+  await expect(page.getByRole("banner").getByRole("status")).toHaveText(S(lang).live);
   return page;
 }
 

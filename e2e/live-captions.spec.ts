@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
+import { captions, escapeRe, joinAsStudent, S, say, startGuestLesson } from "./helpers";
 
 // P2 golden path: a guest teacher starts a lesson, a student joins on a
 // phone, typed sentences reach the phone, a 10-second Wi-Fi drop loses
@@ -8,9 +8,9 @@ import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
 test("teacher speech reaches a student's phone, survives a Wi-Fi drop, and ends cleanly", async ({ browser }) => {
   test.setTimeout(90_000); // includes a deliberate 10s outage; production is slower than local
   const { page: teacher, code } = await startGuestLesson(browser);
-  const student = await joinAsStudent(browser, code, "Ana", /^Español$/);
+  const student = await joinAsStudent(browser, code, "Ana", "es");
 
-  await expect(student.getByText("Waiting for your teacher to start talking...")).toBeVisible();
+  await expect(student.getByText(S("es").waiting)).toBeVisible();
   await expect(teacher.getByRole("heading", { name: "1 student" })).toBeVisible();
   await expect(teacher.getByText("Español")).toBeVisible();
 
@@ -19,7 +19,7 @@ test("teacher speech reaches a student's phone, survives a Wi-Fi drop, and ends 
 
   // Wi-Fi drops for 10 seconds while the teacher keeps talking.
   await student.context().setOffline(true);
-  await expect(student.getByRole("banner").getByRole("status")).toHaveText(/No connection/);
+  await expect(student.getByRole("banner").getByRole("status")).toHaveText(S("es").offline);
   await say(teacher, "Plants take in carbon dioxide from the air.");
   await say(teacher, "The green color comes from chlorophyll.");
   await student.waitForTimeout(10_000);
@@ -36,12 +36,12 @@ test("teacher speech reaches a student's phone, survives a Wi-Fi drop, and ends 
 
   await teacher.getByRole("button", { name: "End lesson" }).click();
   await teacher.getByRole("button", { name: "Click again to end" }).click();
-  await expect(student.getByText("The lesson has ended.").first()).toBeVisible({ timeout: 5000 });
+  await expect(student.getByText(S("es").ended).first()).toBeVisible({ timeout: 5000 });
 });
 
 test("Arabic students get a right-to-left language label", async ({ browser }) => {
   const { code } = await startGuestLesson(browser);
-  const student = await joinAsStudent(browser, code, "Omar", /^العربية$/);
-  const chip = student.getByRole("button", { name: /Change language/ });
+  const student = await joinAsStudent(browser, code, "Omar", "ar");
+  const chip = student.getByRole("button", { name: new RegExp(escapeRe(S("ar").changeLanguage)) });
   await expect(chip.locator("[dir=rtl]")).toHaveText("العربية");
 });

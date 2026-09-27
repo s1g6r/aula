@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { S } from "./helpers";
 
 // P7: the Demo Replay works with zero setup (no login, no database, no AI).
 
@@ -26,10 +27,10 @@ test("the demo replay tells the whole story", async ({ page }) => {
   // Tap a key term on the phone: meaning in the phone's language.
   await phone.getByRole("radio", { name: "Español" }).click();
   await phone.locator("ol button").first().click();
-  await expect(phone.getByRole("dialog")).toContainText("Hear it");
+  await expect(phone.getByRole("dialog")).toContainText(S("es").hearIt);
 
   // Skip to the end: the recap opens on the phone.
   await page.getByLabel("Replay position").press("End");
-  await expect(phone.getByText("What we learned")).toBeVisible({ timeout: 15_000 });
+  await expect(phone.getByText(S("es").whatWeLearned)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Replay of a lesson processed by Aula/)).toBeVisible();
 });

@@ -12,6 +12,7 @@ import { writeFileSync } from "node:fs";
 import { chromium, devices, type Page } from "@playwright/test";
 import { db } from "@/lib/db";
 import { DEMO_ACTIONS, DEMO_LESSON, DEMO_SENTENCES, DEMO_STUDENTS, sentenceTimings } from "@/demo/lesson-script";
+import { studentStrings } from "@/i18n/student";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -61,19 +62,20 @@ for (let i = 0; i < DEMO_SENTENCES.length; i++) {
   const n = i + 1;
   if (n === DEMO_ACTIONS.slower.after) {
     await sleep(1500);
-    await phones[DEMO_ACTIONS.slower.by].getByRole("button", { name: "Slower, please" }).click();
+    await phones[DEMO_ACTIONS.slower.by].getByRole("button", { name: studentStrings(DEMO_ACTIONS.slower.by).slower }).click();
   }
   if (n === DEMO_ACTIONS.lost.after) {
     for (const lang of DEMO_ACTIONS.lost.by) {
       await sleep(1200);
-      await phones[lang].getByRole("button", { name: "I'm lost" }).click();
+      await phones[lang].getByRole("button", { name: studentStrings(lang).lost }).click();
     }
   }
   if (n === DEMO_ACTIONS.question.after) {
     const p = phones[DEMO_ACTIONS.question.by];
-    await p.getByRole("button", { name: "Ask" }).click();
-    await p.getByRole("textbox", { name: "Ask your teacher" }).fill(DEMO_ACTIONS.question.text);
-    await p.getByRole("button", { name: "Send" }).click();
+    const t = studentStrings(DEMO_ACTIONS.question.by);
+    await p.getByRole("button", { name: t.ask, exact: true }).click();
+    await p.getByRole("textbox", { name: t.askTitle }).fill(DEMO_ACTIONS.question.text);
+    await p.getByRole("button", { name: t.send, exact: true }).click();
     await p.keyboard.press("Escape");
   }
 }
