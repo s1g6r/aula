@@ -14,7 +14,8 @@ import { clientIp } from "@/lib/server/http";
 //     auto-delete after 24 hours.
 
 const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 8 });
-const guestLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 10 });
+// Generous: a whole school (or a room of judges) can share one network address.
+const guestLimiter = createRateLimiter({ windowMs: 60 * 60_000, max: 40 });
 
 const LoginSchema = z.object({ email: z.string().trim().toLowerCase().email().max(200), password: z.string().min(1).max(200) });
 
