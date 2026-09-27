@@ -276,3 +276,25 @@ Teachers of newcomers deliberately leave "wait time", and the recording uses a 2
 
 **The server keeps itself awake.**
 Rather than asking the teacher (you) to sign up for an uptime service, the server pings its own public health check every 10 minutes, which Render counts as a visit. It uses `RENDER_EXTERNAL_URL`, which Render sets automatically, so it needs no configuration and does nothing locally. We considered an n8n workflow (a sponsor perk) and a GitHub Actions schedule. n8n needs an extra account, and GitHub's scheduled runs can be late and would use up the private repo's free minutes. Neither adds anything over the self-ping for this job.
+
+**The student interface speaks the student's language.**
+Every button and message on the phone ("I'm lost", "Slower, please", "Ask", the recap headings) is shown in all 12 languages. `scripts/translate-ui.mts` translated the 58 strings once with Gemma, giving it a note on what each button is for ("I'm lost" should be calm and first-person, not alarming). It checked every key and placeholder, and the files are committed in `src/i18n/strings`. A unit test fails if any language is missing a string. We reviewed the key buttons by hand and fixed one: the Tagalog "Slower" came back as two options, one of which meant "turn the volume down". The settings sheet says the interface was translated by AI.
+Rejected: English-only buttons. A newcomer may not be able to read "I'm lost".
+
+**Arabic and Dari get a mirrored screen,** not just right-to-left text. The header, buttons and reading order flip, and English lines keep their own direction.
+
+**Tests use the words students see.** End-to-end tests click "Me perdí" on a Spanish phone and "لم أفهم" on an Arabic phone, looked up from the same strings file, so they prove the translations are wired in.
+
+**Accessibility is tested, not assumed.** An axe audit (WCAG 2.1 A and AA) runs over the landing page, demo, join, sign-in, the teacher and student screens, and projector mode. It found two real problems:
+- older caption lines were dimmed with transparency, which dropped small text below 4.5:1 contrast (now a softer ink color);
+- scrollable panels couldn't be reached by keyboard (now focusable and labeled).
+
+Lighthouse gives accessibility 100 on every main screen.
+
+**Faster first paint on phones.** Lighthouse on a simulated mid-range phone (slow 4G) showed the fonts slowing the first paint: the full body font in four alphabets and a variable heading font were preloaded. Now only the Latin body font and the single heading weight are preloaded. Landing performance went from 76 to 82 (largest paint 6.0s to 4.1s), and the teacher screen from 85 to 95.
+
+**Projector mode shows English only.** Huge high-contrast captions for the room, the join code and QR in the corner, and one key for full screen. It's the shared screen for everyone, including deaf and hard-of-hearing students. Each student reads their own language on their phone.
+
+**"My words" stays on the phone.** Saved words live in the browser's local storage, never on our server, so there's no account and nothing to delete.
+
+**Students can flag a wrong translation.** A small flag under each translated line. The teacher's review lists the flagged lines. For the beta languages especially, admitting the AI can be wrong is part of the design.

@@ -45,6 +45,10 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the scripted lesson, the recording script, the replay engine and player, and the narration. It also found, from the first recording, that four languages at speaking pace outran the model, and it redesigned the reply format to fix that.
 - **I decided / changed:** _(fill in)_
 
+### P8: Polish (Sep 26 to 27)
+- **Claude Code generated:** the landing page, projector mode, text size and dark mode, My words, the translation flag, the 12-language student interface (translated once by Gemma, then spot-checked), the mirrored Arabic/Dari layout, icons and share image, the accessibility fixes found by the axe audit, and the font change that sped up first paint.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula
@@ -55,5 +59,6 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 | Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | Gemma 4 26B | Only terms the teacher listed are kept. Runs at low priority so it never slows captions |
 | Speech-recognition repair | Inside the translation call, fixes obvious mishearings ("sell membrane" to "cell membrane") | same | The correction is shown next to what Chrome heard, never silently |
 | Student questions | Translates a student's question into English for the teacher | same routing as live translation | Told to translate only and never answer. The teacher answers. Profanity is checked on the original and the English. Only the teacher sees questions |
+| Student interface text | Translated the 58 interface strings into the 12 languages once, before launch (not at runtime) | Gemma 4 26B | Every key and placeholder is checked by a test. Key buttons were reviewed by hand, and one bad Tagalog string was fixed. The app says the interface was translated by AI |
 | Recap | When the lesson ends, writes a summary, key terms with definitions, and 3 check-yourself questions, then translates them for every student's language (and any other language on request) | Gemma 4 26B writes; Qwen3 30B or Gemma translate | Built only from the transcript. Told never to add facts or homework answers. Validated before saving. Labeled "Written by AI from what the teacher said" on the page |
 | Student questions | _(P4)_ | | |
