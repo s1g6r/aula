@@ -134,7 +134,7 @@ async function translateOne(
     keyTerms: lesson.keyTerms,
     context,
     langs,
-    segments: [{ seq: sentence.id, text: sentence.text, terms: findKeyTerms(sentence.text, lesson.keyTerms) }],
+    segments: [{ seq: sentence.id, text: sentence.text }],
   });
 
   // Recall is measured against the corrected sentence, so a misheard term

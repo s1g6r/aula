@@ -24,7 +24,8 @@ export function extractJson(raw: string): unknown {
 export type ScannedSegment = {
   seq?: number;
   fix?: string;
-  // language code -> the raw JSON text of its finished object
+  // language code -> the raw JSON of its finished value (a string, or an
+  // object in the older format)
   langs: Record<string, string>;
   // language code -> character offset just past its closing brace
   ends: Record<string, number>;
@@ -46,7 +47,21 @@ export function scanTranslationStream(text: string): ScannedSegment[] {
     return arr.index;
   };
 
-  const onPrimitive = (value: unknown) => {
+  const onPrimitive = (value: unknown, raw: string, end: number) => {
+    // A finished plain-string translation: segments[k].tr.<lang> = "..."
+    const [root, arr, segObj, trMap] = stack;
+    if (
+      typeof value === "string" &&
+      stack.length === 4 &&
+      root.kind === "obj" && root.key === "segments" &&
+      arr.kind === "arr" &&
+      segObj.kind === "obj" && segObj.key === "tr" &&
+      trMap.kind === "obj" && trMap.key
+    ) {
+      seg(arr.index).langs[trMap.key] = raw;
+      seg(arr.index).ends[trMap.key] = end;
+      return;
+    }
     const k = segmentIndex();
     const top = stack[stack.length - 1];
     if (k === null || top.kind !== "obj") return;
@@ -63,12 +78,13 @@ export function scanTranslationStream(text: string): ScannedSegment[] {
       let j = i + 1;
       while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
       if (j >= text.length) break; // string still arriving
-      const value = JSON.parse(text.slice(i, j + 1)) as string;
+      const raw = text.slice(i, j + 1);
+      const value = JSON.parse(raw) as string;
       if (top?.kind === "obj" && top.expectingKey) {
         top.key = value;
         top.expectingKey = false;
       } else {
-        onPrimitive(value);
+        onPrimitive(value, raw, j + 1);
       }
       i = j + 1;
       continue;
@@ -102,7 +118,7 @@ export function scanTranslationStream(text: string): ScannedSegment[] {
     } else if (/[-0-9tfn]/.test(c)) {
       const m = text.slice(i).match(/^(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|true|false|null)(?=[\s,}\]])/);
       if (!m) break; // literal still arriving
-      onPrimitive(JSON.parse(m[1]));
+      onPrimitive(JSON.parse(m[1]), m[1], i + m[1].length);
       i += m[1].length;
       continue;
     }

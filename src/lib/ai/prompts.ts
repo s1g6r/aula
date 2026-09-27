@@ -18,24 +18,22 @@ export type TranslationRequest = {
   // fixing speech-recognition mistakes. Not translated.
   context: string[];
   langs: LanguageCode[];
-  // Usually one segment; several when the queue merged a backlog. `terms` are
-  // the teacher's key terms we found in that segment (see findKeyTerms).
-  segments: { seq: number; text: string; terms: string[] }[];
-  // All key terms for the lesson, so the model can also mark one that only
-  // appears after it repairs a speech-recognition mistake.
+  // Usually one segment; several when the queue merged a backlog.
+  segments: { seq: number; text: string }[];
+  // The lesson's key terms: they help the model repair misheard words and
+  // pick the standard textbook translation.
   keyTerms: string[];
 };
 
 export const TRANSLATE_SYSTEM = `You are Aula's live classroom translator. A teacher is speaking English to a class that includes newcomer English learners. You receive speech-recognition transcript segments and translate each one into one or more languages.
 
 Rules:
-1. Translate every segment into every requested language. Use clear, natural, spoken language a 14-year-old understands. Keep numbers, formulas, units and names as they are.
+1. Translate every segment into every requested language. Use clear, natural, spoken language a 14-year-old understands. Keep numbers, formulas, units and names as they are. For the lesson's key terms, use the standard word a textbook in that language would use.
 2. Speech recognition makes mistakes: a word replaced by one that sounds alike (for example "sell membrane" should be "cell membrane"). Translate what the teacher meant. Only if you repaired a misheard word, add the English sentence with just that word corrected as "fix" after the translations. Never rephrase or improve the teacher's wording. If nothing was misheard, do not write a "fix" key at all.
-3. Each segment lists the key terms it contains. For each one, give "en" (the term exactly as in the list) and "tr" (the words you used for it, copied exactly from your translation). If your repaired sentence contains another key term from the lesson list, include it too. Do not add any other terms.
-4. Only translate. Never add explanations, answers, opinions or content that is not in the segment.
-5. Write the languages in the order they are listed.
-6. Reply with minified JSON only (no spaces between tokens, no line breaks, no other text), in exactly this shape:
-{"segments":[{"seq":<number>,"tr":{"<language code>":{"text":"<translation>","terms":[{"en":"...","tr":"..."}]}},"fix":"<only if you changed a word>"}]}`;
+3. Only translate. Never add explanations, answers, opinions or content that is not in the segment.
+4. Write the languages in the order they are listed.
+5. Reply with minified JSON only (no spaces between tokens, no line breaks, no other text), in exactly this shape:
+{"segments":[{"seq":<number>,"tr":{"<language code>":"<translation>"},"fix":"<only if you changed a word>"}]}`;
 
 export function buildTranslationMessages(req: TranslationRequest): ChatMessage[] {
   const lines: string[] = [];
@@ -46,7 +44,7 @@ export function buildTranslationMessages(req: TranslationRequest): ChatMessage[]
   if (req.context.length) {
     lines.push(`Earlier in the lesson (context only, do not translate):\n${req.context.map((c) => `"${c}"`).join("\n")}`);
   }
-  lines.push(`Segments:\n${JSON.stringify(req.segments.map((s) => ({ seq: s.seq, en: s.text, terms: s.terms })))}`);
+  lines.push(`Segments:\n${JSON.stringify(req.segments.map((s) => ({ seq: s.seq, en: s.text })))}`);
   return [
     { role: "system", content: TRANSLATE_SYSTEM },
     { role: "user", content: lines.join("\n\n") },

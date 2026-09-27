@@ -108,6 +108,17 @@ describe("scanTranslationStream", () => {
     expect(scanTranslationStream('{"segm')).toEqual([]);
   });
 
+  it("reports plain-string translations (the lean format) as each one finishes", () => {
+    const lean = '{"segments":[{"seq":3,"tr":{"es":"Hola \\"clase\\"","ar":"مرحبا"},"fix":"x"}]}';
+    const cut = lean.indexOf('"ar"') + 8;
+    const [partial] = scanTranslationStream(lean.slice(0, cut));
+    expect(Object.keys(partial.langs)).toEqual(["es"]);
+    expect(JSON.parse(partial.langs.es)).toBe('Hola "clase"');
+    const [full] = scanTranslationStream(lean);
+    expect(Object.keys(full.langs)).toEqual(["es", "ar"]);
+    expect(full.fix).toBe("x");
+  });
+
   it("waits for a number that may still be growing", () => {
     expect(scanTranslationStream('{"segments":[{"seq":1')[0]).toBeUndefined();
     expect(scanTranslationStream('{"segments":[{"seq":12,')[0].seq).toBe(12);

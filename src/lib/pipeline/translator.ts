@@ -1,8 +1,7 @@
 import { scanTranslationStream } from "@/lib/ai/json";
 import { buildTranslationMessages, type ChatMessage } from "@/lib/ai/prompts";
-import { LangTranslationSchema, type LangTranslation } from "@/lib/ai/schemas";
+import { LiveLangSchema, type LangTranslation } from "@/lib/ai/schemas";
 import type { LanguageCode } from "@/lib/languages";
-import { findKeyTerms } from "@/lib/terms";
 import { acceptFix } from "./fix";
 import { translationCacheKey, type Lru } from "./lru";
 import type { ModelChoice } from "./routing";
@@ -172,7 +171,7 @@ export class LessonTranslator {
       keyTerms: this.d.lesson.keyTerms,
       context,
       langs: callLangs as LanguageCode[],
-      segments: segs.map((s) => ({ seq: s.seq, text: s.text, terms: findKeyTerms(s.text, this.d.lesson.keyTerms) })),
+      segments: segs.map((s) => ({ seq: s.seq, text: s.text })),
     });
 
     const delivered = new Set<string>();
@@ -192,7 +191,7 @@ export class LessonTranslator {
           if (delivered.has(key) || !needed.get(seg.seq)?.has(lang)) continue;
           let parsed: LangTranslation | null = null;
           try {
-            const r = LangTranslationSchema.safeParse(JSON.parse(raw));
+            const r = LiveLangSchema.safeParse(JSON.parse(raw));
             if (r.success) parsed = r.data;
           } catch {
             parsed = null;

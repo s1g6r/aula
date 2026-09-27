@@ -1,6 +1,7 @@
 // A tiny OpenAI-compatible server for end-to-end tests. It streams
 // predictable "translations" so tests can check the whole pipeline without
-// calling (or paying for) a real model. Control words in the teacher's
+// calling (or paying for) a real model. Glossary translations equal the
+// English term, so highlights can be found in the "<lang>: <English>" lines. Control words in the teacher's
 // sentence change its behavior:
 //   [fail]  -> HTTP 500 (the app must fall back to English)
 //   [hang]  -> never answers (the app must time out and fall back)
@@ -61,12 +62,12 @@ const server = http.createServer(async (req, res) => {
   } else if (question) {
     content = JSON.stringify({ en: `EN: ${JSON.parse(question[1])}` });
   } else if (glossaryTerms) {
-    content = JSON.stringify({ terms: glossaryTerms.map((t) => ({ en: t, tr: `${t}-${glossaryLang}`, gloss: `Definition of ${t} in ${glossaryLang}.` })) });
+    content = JSON.stringify({ terms: glossaryTerms.map((t) => ({ en: t, tr: t, gloss: `Definition of ${t} in ${glossaryLang}.` })) });
   } else if (segments.length) {
     content = JSON.stringify({
       segments: segments.map((s) => ({
         seq: s.seq,
-        tr: Object.fromEntries(langs.map((l) => [l, { text: `${l}: ${s.en}`, terms: (s.terms ?? []).map((t) => ({ en: t, tr: t })) }])),
+        tr: Object.fromEntries(langs.map((l) => [l, `${l}: ${s.en}`])),
         ...(s.en.includes("sell membrane") ? { fix: s.en.replace("sell membrane", "cell membrane") } : {}),
       })),
     });

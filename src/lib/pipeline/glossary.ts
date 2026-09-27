@@ -46,6 +46,7 @@ export class GlossaryService {
     const missing = lesson.keyTerms.filter((t) => !have.has(norm(t)));
     const size = this.d.chunkSize ?? 10;
     let preemptions = 0;
+    let retried = false;
     for (let i = 0; i < missing.length; i += size) {
       const chunk = missing.slice(i, i + size);
       try {
@@ -62,7 +63,16 @@ export class GlossaryService {
             .finally(() => clearTimeout(timer));
         });
         const parsed = parseModelJson(text, GlossaryResponseSchema);
-        if (!parsed.ok) throw new Error(`glossary ${lang}: ${parsed.error}`);
+        if (!parsed.ok) {
+          // One more try for a malformed reply, then move on.
+          if (!retried) {
+            retried = true;
+            i -= size;
+            continue;
+          }
+          throw new Error(`glossary ${lang}: ${parsed.error}`);
+        }
+        retried = false;
         // Keep only terms we asked for, spelled the way the teacher wrote them.
         const wanted = new Map(chunk.map((t) => [norm(t), t]));
         const entries: GlossaryEntry[] = [];

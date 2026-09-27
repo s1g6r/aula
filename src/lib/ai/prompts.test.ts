@@ -8,7 +8,7 @@ describe("buildTranslationMessages", () => {
     keyTerms: ["photosynthesis", "ATP", "cell membrane"],
     context: ["Plants need light."],
     langs: ["es", "fa-AF"],
-    segments: [{ seq: 4, text: "The Calvin cycle uses ATP.", terms: ["ATP"] }],
+    segments: [{ seq: 4, text: "The Calvin cycle uses ATP." }],
   });
   const user = msgs[1].content;
 
@@ -27,9 +27,9 @@ describe("buildTranslationMessages", () => {
     expect(user).toContain("fa-AF: Dari (Afghan Persian, not Iranian Farsi)");
   });
 
-  it("passes context separately and lists each segment's terms", () => {
+  it("passes context separately from the segments to translate", () => {
     expect(user).toContain('context only, do not translate):\n"Plants need light."');
-    expect(user).toContain('[{"seq":4,"en":"The Calvin cycle uses ATP.","terms":["ATP"]}]');
+    expect(user).toContain('[{"seq":4,"en":"The Calvin cycle uses ATP."}]');
   });
 
   it("never contains anything but lesson text (no names, no ids)", () => {

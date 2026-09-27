@@ -42,7 +42,9 @@ export const env = {
     return num("AI_RECAP_COST", 2);
   },
   get lessonConcurrency() {
-    return num("LESSON_CONCURRENCY", 2);
+    // One call in flight per lesson; sentences that arrive meanwhile are
+    // merged into the next call (see DECISIONS.md, P3).
+    return num("LESSON_CONCURRENCY", 1);
   },
   get aiTimeoutMs() {
     return num("AI_TIMEOUT_MS", 8000);
