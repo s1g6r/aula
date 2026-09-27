@@ -8,13 +8,18 @@ import type { ModelChoice } from "./routing";
 
 // Translates one lesson's sentences as they arrive.
 //
-//   enqueue(sentence) -> pending queue -> one AI call at a time per lesson
+//   enqueue(sentence) -> one queue per model -> one AI call at a time per lesson
 //
-// While a call is running, new sentences wait. When it finishes, everything
+// While a call is running, new sentences wait. When it finishes, what's
 // waiting goes out together in one call ("merging"), so a fast talker never
 // builds a long line of separate requests. Each call streams back JSON; the
 // moment one language's part is complete we validate it and send it to the
 // students reading that language.
+//
+// Languages that need the stronger, slower model (Somali, Haitian Creole,
+// Dari) have their own queue. The queues take turns, oldest line first, so a
+// student reading Somali doesn't make Spanish wait for the slow model, and
+// the slow queue merges its lines into fewer calls.
 //
 // Nothing here ever leaves a student with a blank line: if the AI is slow,
 // fails, or returns something invalid, that language gets a
@@ -45,8 +50,12 @@ export type TranslatorDeps = {
   // Lines older than this when their turn comes are skipped (shown in
   // English) so captions catch up to what the teacher is saying now.
   maxLagMs?: number;
-  // At most this many sentences in one merged call.
+  // At most this many sentences in one merged call...
   maxBatch?: number;
+  // ...and at most about this many tokens of reply. Featherless writes about
+  // 30 tokens a second for our whole account, so a big merged call keeps
+  // every student waiting for its last language.
+  maxBatchTokens?: number;
   // Calls in flight per lesson. Featherless processes one account's calls
   // one after another, so 1 plus merging is fastest (see MODEL_BENCHMARK).
   concurrency?: number;
@@ -73,27 +82,59 @@ export type CallRecord = {
 
 const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 
+// Why we cut a call short once everything in it has been delivered: models
+// sometimes keep going (whitespace, repeats) after the JSON is complete, and
+// every second of that is a second the next caption waits.
+const FINISHED = new Error("everything delivered");
+
+// Rough size of the reply: translations run about 1.6 tokens per English
+// word (more for Arabic or Vietnamese, less for Chinese), plus the JSON around
+// each line.
+export function estimateTokens(segs: { text: string }[], langCount: number): number {
+  const words = segs.reduce((n, s) => n + s.text.split(/\s+/).filter(Boolean).length, 0);
+  return Math.round((words * 1.6 + segs.length * 8) * langCount);
+}
+
+type Group = { langs: string[]; cost: number };
+
 export class LessonTranslator {
-  private pending: PendingSegment[] = [];
+  // Waiting lines, one queue per model.
+  private lanes = new Map<string, PendingSegment[]>();
   private inFlight = 0;
   private history: PendingSegment[] = [];
   private readonly d: Required<Omit<TranslatorDeps, "onLatency" | "onError" | "onCall">> & Pick<TranslatorDeps, "onLatency" | "onError" | "onCall">;
 
   constructor(deps: TranslatorDeps) {
-    this.d = { now: Date.now, stallMs: 8000, maxMs: 15_000, maxLagMs: 20_000, maxBatch: 4, concurrency: 1, ...deps };
+    this.d = { now: Date.now, stallMs: 8000, maxMs: 15_000, maxLagMs: 20_000, maxBatch: 4, maxBatchTokens: 360, concurrency: 1, ...deps };
   }
 
   enqueue(seg: Omit<PendingSegment, "at"> & { at?: number }): void {
     const s = { ...seg, at: seg.at ?? this.d.now() };
-    this.pending.push(s);
-    this.pending.sort((a, b) => a.seq - b.seq);
+    for (const model of this.groups().keys()) {
+      const lane = this.lanes.get(model) ?? [];
+      lane.push(s);
+      lane.sort((a, b) => a.seq - b.seq);
+      this.lanes.set(model, lane);
+    }
     this.history.push(s);
     if (this.history.length > 12) this.history.shift();
     this.pump();
   }
 
   get queueLength(): number {
-    return this.pending.length;
+    return Math.max(0, ...[...this.lanes.values()].map((l) => l.length));
+  }
+
+  // The languages in the room, grouped by the model that translates them.
+  private groups(): Map<string, Group> {
+    const groups = new Map<string, Group>();
+    for (const lang of this.d.activeLangs()) {
+      const { model, cost } = this.d.pickModel([lang]);
+      const g = groups.get(model) ?? { langs: [], cost };
+      g.langs.push(lang);
+      groups.set(model, g);
+    }
+    return groups;
   }
 
   // A student switched to (or joined with) a language nobody else reads:
@@ -105,22 +146,42 @@ export class LessonTranslator {
   }
 
   private pump(): void {
-    while (this.inFlight < this.d.concurrency && this.pending.length) {
+    while (this.inFlight < this.d.concurrency) {
+      const groups = this.groups();
       const now = this.d.now();
-      // Freshness over completeness: skip lines we're too far behind on.
-      while (this.pending.length > 1 && now - this.pending[0].at > this.d.maxLagMs) {
-        const skipped = this.pending.shift()!;
-        for (const lang of this.d.activeLangs()) this.d.publish("translation-failed", { seq: skipped.seq, lang, reason: "behind" }, { lang });
+      for (const [model, lane] of this.lanes) {
+        const group = groups.get(model);
+        if (!group) {
+          this.lanes.delete(model); // nobody reads these languages any more
+          continue;
+        }
+        // Freshness over completeness: skip lines we're too far behind on.
+        while (lane.length > 1 && now - lane[0].at > this.d.maxLagMs) {
+          const skipped = lane.shift()!;
+          for (const lang of group.langs) this.d.publish("translation-failed", { seq: skipped.seq, lang, reason: "behind" }, { lang });
+        }
       }
-      const batch = this.pending.splice(0, this.d.maxBatch);
-      const langs = this.d.activeLangs();
-      if (!langs.length) continue; // nobody needs a translation right now
+      // The queue whose oldest line has waited longest; ties go to the faster model.
+      const next = [...this.lanes.entries()]
+        .filter(([, lane]) => lane.length)
+        .sort(([ma, a], [mb, b]) => a[0].at - b[0].at || groups.get(ma)!.cost - groups.get(mb)!.cost)[0];
+      if (!next) return;
+      const [model, lane] = next;
+      const langs = groups.get(model)!.langs;
+      const batch = this.takeBatch(lane, langs.length);
       this.inFlight++;
       void this.runBatch(batch, langs, 0).finally(() => {
         this.inFlight--;
         this.pump();
       });
     }
+  }
+
+  // The oldest waiting lines, as many as fit in one reasonably quick call.
+  private takeBatch(lane: PendingSegment[], langCount: number): PendingSegment[] {
+    let n = 1;
+    while (n < Math.min(this.d.maxBatch, lane.length) && estimateTokens(lane.slice(0, n + 1), langCount) <= this.d.maxBatchTokens) n++;
+    return lane.splice(0, n);
   }
 
   private deliver(seg: PendingSegment, lang: string, tr: LangTranslation, model: string, fromCache: boolean): void {
@@ -146,13 +207,15 @@ export class LessonTranslator {
     return { text: tr.text, terms: terms.map(({ en, tr }) => ({ en, tr })) };
   }
 
-  private async runBatch(batch: PendingSegment[], langs: string[], priority: number): Promise<void> {
+  // `done`: on a second try, the line/language pairs that already arrived.
+  private async runBatch(batch: PendingSegment[], langs: string[], priority: number, done?: Set<string>): Promise<void> {
     const { model, cost } = this.d.pickModel(langs);
     // 1. Cache hits go out immediately.
     const needed = new Map<number, Set<string>>();
     for (const seg of batch) {
       const want = new Set<string>();
       for (const lang of langs) {
+        if (done?.has(`${seg.seq}|${lang}`)) continue;
         const hit = this.d.cache.get(translationCacheKey(seg.text, lang, model));
         if (hit) this.deliver(seg, lang, hit, model, true);
         else want.add(lang);
@@ -203,6 +266,7 @@ export class LessonTranslator {
       });
     };
 
+    const expected = [...needed.values()].reduce((n, langs) => n + langs.size, 0);
     const queuedAt = this.d.now();
     let startedAt = queuedAt;
     let firstTextAt: number | null = null;
@@ -216,12 +280,15 @@ export class LessonTranslator {
         stall = setTimeout(() => controller.abort(new Error("stalled")), this.d.stallMs);
       };
       let hardCap: ReturnType<typeof setTimeout> | undefined;
+      let wrapUp: ReturnType<typeof setTimeout> | undefined;
       try {
         await this.d.schedule(priority, cost, async (schedulerSignal) => {
           schedulerSignal.addEventListener("abort", () => controller.abort(schedulerSignal.reason));
           // Timers start when the call starts, not while it waits its turn.
+          // A bigger reply gets more time (about 60ms a token, up to 45s).
           if (attempt === 0) startedAt = this.d.now();
-          hardCap = setTimeout(() => controller.abort(new Error("too slow")), this.d.maxMs);
+          const capMs = Math.min(45_000, Math.max(this.d.maxMs, estimateTokens(segs, callLangs.length) * 60 + 4000));
+          hardCap = setTimeout(() => controller.abort(new Error("too slow")), capMs);
           armStall();
           await this.d.complete(model, {
             messages,
@@ -230,14 +297,19 @@ export class LessonTranslator {
               armStall();
               firstTextAt ??= this.d.now();
               onText(t);
+              // All delivered: allow a moment for a trailing "fix", then stop.
+              if (delivered.size >= expected && !wrapUp) wrapUp = setTimeout(() => controller.abort(FINISHED), 1500);
             },
           });
+          // A stream cut off by our own timers can end quietly instead of
+          // throwing; treat that like the error it is.
+          if (controller.signal.aborted && controller.signal.reason !== FINISHED) throw controller.signal.reason;
         });
         break;
       } catch (err) {
+        if (controller.signal.reason === FINISHED) break;
         const status = (err as { status?: number }).status;
-        // Retry once on "too many requests", but only if nothing reached
-        // students yet (a retry would otherwise duplicate lines).
+        // "Too many requests" before anything arrived: wait a moment and retry.
         if (status === 429 && attempt === 0 && delivered.size === 0) {
           await new Promise((r) => setTimeout(r, 1500));
           continue;
@@ -248,16 +320,15 @@ export class LessonTranslator {
       } finally {
         clearTimeout(stall);
         clearTimeout(hardCap);
+        clearTimeout(wrapUp);
       }
     }
 
-    let failed = 0;
-    // Anything not delivered falls back to English on the phones.
+    const missing = segs.flatMap((seg) => [...needed.get(seg.seq)!].filter((lang) => !delivered.has(`${seg.seq}|${lang}`)).map((lang) => ({ seg, lang })));
+    // One more try for whatever didn't arrive (the provider stalled, or the
+    // reply trailed off before every language), while the lines are fresh.
+    const retry = missing.length > 0 && !done && this.d.now() - segs[0].at < this.d.maxLagMs / 2;
     for (const seg of segs) {
-      failed += [...(needed.get(seg.seq) ?? [])].filter((lang) => !delivered.has(`${seg.seq}|${lang}`)).length;
-      for (const lang of needed.get(seg.seq) ?? []) {
-        if (!delivered.has(`${seg.seq}|${lang}`)) this.d.publish("translation-failed", { seq: seg.seq, lang, reason: "failed" }, { lang });
-      }
       const fix = fixes.get(seg.seq);
       if (fix && acceptFix(seg.text, fix, this.d.lesson.keyTerms)) {
         this.d.publish("fix", { seq: seg.seq, text: fix }, "all");
@@ -275,9 +346,21 @@ export class LessonTranslator {
       firstTextMs: firstTextAt === null ? null : firstTextAt - startedAt,
       totalMs: end - startedAt,
       delivered: delivered.size,
-      failed,
-      outcome: lastError ? "error" : "ok",
-      error: lastError,
+      failed: missing.length,
+      outcome: lastError || missing.length ? "error" : "ok",
+      error: lastError ?? (missing.length ? "incomplete reply" : undefined),
     });
+    if (retry) {
+      const sent = new Set([...(done ?? []), ...delivered]);
+      for (const seg of batch) for (const lang of langs) if (!needed.get(seg.seq)?.has(lang)) sent.add(`${seg.seq}|${lang}`);
+      return this.runBatch(
+        segs.filter((s) => missing.some((m) => m.seg === s)),
+        callLangs.filter((l) => missing.some((m) => m.lang === l)),
+        priority,
+        sent,
+      );
+    }
+    // Anything not delivered falls back to English on the phones.
+    for (const { seg, lang } of missing) this.d.publish("translation-failed", { seq: seg.seq, lang, reason: "failed" }, { lang });
   }
 }
