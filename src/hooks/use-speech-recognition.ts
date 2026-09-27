@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SpeechChunker } from "@/lib/chunking";
 
 // Wraps Chrome's speech recognition for the teacher's laptop.
 //
@@ -14,7 +15,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Chrome stops listening after a pause or about a minute, so while the
 // teacher wants the mic on we restart it every time it ends. Interim results
 // go to onInterim; each finished sentence goes to onFinal with the time the
-// teacher started saying it.
+// teacher started saying it. A teacher who talks without pausing gets their
+// speech sent in pieces of about a dozen words (see SpeechChunker), so
+// translation starts while they're still talking.
 //
 // If Chrome can recognize English on this device, we use that, so audio never
 // leaves the laptop. If that mode fails for any reason we quietly switch to
@@ -223,7 +226,9 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     if (local) rec.processLocally = true;
     setMode(local ? "on-device" : "cloud");
 
+    const chunker = new SpeechChunker();
     rec.onstart = () => {
+      chunker.reset(); // each session numbers its results from zero
       setStatus("listening");
       setError(null);
     };
@@ -234,14 +239,21 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
         const text = result[0]?.transcript ?? "";
         if (!startedAt.current && text.trim()) startedAt.current = new Date();
         if (result.isFinal) {
-          const final = text.trim();
-          if (final) handlers.current.onFinal(final, startedAt.current ?? new Date());
+          // Only the words we haven't already sent as a piece.
+          const rest = chunker.final(text);
+          if (rest) handlers.current.onFinal(rest, startedAt.current ?? new Date());
           startedAt.current = null;
         } else {
           interim += text;
         }
       }
-      handlers.current.onInterim(interim.trim());
+      // Still talking with no pause: send the words that have settled.
+      const { pieces, rest } = chunker.interim(interim);
+      for (const piece of pieces) {
+        handlers.current.onFinal(piece, startedAt.current ?? new Date());
+        startedAt.current = new Date();
+      }
+      handlers.current.onInterim(rest);
     };
     rec.onerror = (e) => {
       if (e.error === "no-speech" || e.error === "aborted") return; // normal; onend restarts
