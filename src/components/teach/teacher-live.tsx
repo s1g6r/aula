@@ -10,6 +10,7 @@ import { useSpeechRecognition, type MicDevice, type SpeechStatus } from "@/hooks
 import { applyCaptionEvent, emptyCaptions, type CaptionEvent } from "@/lib/captions";
 import { getLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
+import { formatTime } from "@/lib/dates";
 
 export type Room = { students: number; langs: Record<string, number>; participants: { id: string; nickname: string; lang: string; muted: boolean }[] };
 export type Signals = { lost: number; slower: number; anchor: { seq: number; count: number } | null; anchorText: string | null; totals: Record<number, number> };
@@ -579,7 +580,7 @@ export function QuestionsCard({ lessonId, questions, readOnly = false }: { lesso
 function QuestionItem({ lessonId, q, readOnly }: { lessonId: string; q: Question; readOnly: boolean }) {
   const [confirmMute, setConfirmMute] = useState(false);
   const lang = getLanguage(q.lang);
-  const time = new Date(q.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const time = formatTime(q.at);
   return (
     <li className={cn("rounded-xl border p-3", q.answered && "opacity-60")}>
       {q.lang === "en" ? (

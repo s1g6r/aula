@@ -8,6 +8,7 @@ import { getLanguage } from "@/lib/languages";
 import { summarizeSignals } from "@/lib/signals";
 import { DeleteLesson, ReviewRecap } from "@/components/review/review-actions";
 import { Timeline } from "@/components/review/timeline";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = { title: "Lesson review" };
 
@@ -77,7 +78,7 @@ export default async function ReviewPage(props: PageProps<"/teach/[id]/review">)
         <p className="text-sm font-semibold tracking-wide text-coral uppercase">Lesson review</p>
         <h1 className="mt-1 text-4xl font-semibold">{lesson.title ?? "Untitled lesson"}</h1>
         <p className="mt-2 text-ink-2">
-          {[lesson.subject, lesson.startedAt.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }), mmss(durationSec)].filter(Boolean).join(" · ")}
+          {[lesson.subject, formatDate(lesson.startedAt, { weekday: "long", month: "long", day: "numeric" }), mmss(durationSec)].filter(Boolean).join(" · ")}
         </p>
         {Object.keys(langCounts).length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2">
@@ -200,7 +201,7 @@ export default async function ReviewPage(props: PageProps<"/teach/[id]/review">)
           Your data
         </h2>
         <p className="mt-1 mb-4 text-sm text-ink-2">
-          This lesson deletes itself on {lesson.expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric" })}. You can delete it now: the transcript, translations, signals, questions and recap all go with it.
+          This lesson deletes itself on {formatDate(lesson.expiresAt, { month: "long", day: "numeric" })}. You can delete it now: the transcript, translations, signals, questions and recap all go with it.
         </p>
         <DeleteLesson lessonId={id} />
       </section>

@@ -8,6 +8,7 @@ import { Wordmark } from "@/components/wordmark";
 import type { RecapView as View } from "@/lib/server/recaps";
 import { getLanguage, LANGUAGES } from "@/lib/languages";
 import { studentStrings } from "@/i18n/student";
+import { formatDate } from "@/lib/dates";
 
 type Data = View & { translating?: boolean };
 
@@ -76,7 +77,7 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
   const shownLang = tr ? lang : "en";
   const shownDir = tr ? dir : "ltr";
   const waiting = lang !== "en" && !tr && !gaveUp;
-  const date = new Date(data.lesson.date).toLocaleDateString(shownLang === "en" ? "en-US" : shownLang, { weekday: "long", month: "long", day: "numeric" });
+  const date = formatDate(data.lesson.date, { weekday: "long", month: "long", day: "numeric" }, shownLang === "en" ? "en-US" : shownLang);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pt-6 pb-16">

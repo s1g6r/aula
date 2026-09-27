@@ -5,6 +5,7 @@ import { currentTeacher } from "@/auth";
 import { CreateLessonForm } from "@/components/teach/create-lesson-form";
 import { Wordmark } from "@/components/wordmark";
 import { db } from "@/lib/db";
+import { formatDate } from "@/lib/dates";
 
 export const metadata = { title: "Your lessons" };
 
@@ -60,7 +61,7 @@ export default async function TeachPage() {
                     <div className="min-w-0">
                       <p className="truncate font-medium">{l.title || "Untitled lesson"}</p>
                       <p className="text-sm text-ink-2">
-                        {[l.subject, l.startedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" }), `${l._count.participants} students`]
+                        {[l.subject, formatDate(l.startedAt, { month: "short", day: "numeric" }), `${l._count.participants} students`]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>

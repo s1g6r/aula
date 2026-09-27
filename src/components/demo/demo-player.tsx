@@ -11,6 +11,7 @@ import { getLanguage } from "@/lib/languages";
 import { termKey } from "@/lib/terms";
 import { cn } from "@/lib/utils";
 import { studentStrings } from "@/i18n/student";
+import { formatDate } from "@/lib/dates";
 
 const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, "0")}`;
 const TICK_MS = 100;
@@ -256,7 +257,7 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
 
       <p className="mx-auto mt-4 max-w-3xl text-center text-xs leading-relaxed text-ink-2">
         Replay of a lesson processed by Aula&rsquo;s live pipeline on{" "}
-        {new Date(data.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. The translations, definitions, speech fix and recap are real AI output
+        {formatDate(data.generatedAt, { month: "long", day: "numeric", year: "numeric" })}. The translations, definitions, speech fix and recap are real AI output
         (Featherless: {data.models.translate?.split("/")[1] ?? "Qwen3"} and {data.models.glossaryAndRecap?.split("/")[1] ?? "Gemma 4"}), shown with the delays we measured. The teacher&rsquo;s
         sentences were typed at speaking pace, and the recap step is sped up.
       </p>
