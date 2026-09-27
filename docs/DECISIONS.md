@@ -393,3 +393,15 @@ Everything below was run against the live site, https://aulaapp.xyz, after deplo
 **The cost:** Hindi readers get their own call, like Somali, so a room with Hindi uses more of the shared AI pipe. With Spanish, Arabic and Hindi and a teacher talking non-stop, lines arrived 5.5 to 7.6 seconds after the teacher finished them (all 23 lines translated), against about 3.5 seconds for Spanish, Chinese and Arabic.
 
 **Interface and fonts.** The 58 interface strings were translated into Hindi with the same script as the other languages (everyday words students use, like "टीचर" and "क्लास"). Noto Sans Devanagari loads only on pages that show Hindi.
+
+---
+
+## Chrome microphone (Sep 27)
+
+**The report:** in Chrome the microphone sometimes works once and then says it isn't responding until Chrome is fully quit. Safari always works.
+
+**What we tested:** real Chrome with the laptop's real microphone, through seven flows: first start, pause and resume, reload while listening, a new lesson in the same tab, a new lesson after ending one, a new tab after closing a listening tab, and two tabs listening at once. The microphone opened in under 0.2 seconds every time. So Aula doesn't leave Chrome stuck; the stuck state is Chrome's own audio service, which on macOS can hang after Bluetooth headphones switch into headset mode. Quitting Chrome restarts that service, which is why it helps.
+
+**What changed anyway:**
+- The level meter no longer opens the speakers. In Chrome an AudioContext plays to the output device by default even when it only analyses the microphone. With AirPods as the output, that's one more Bluetooth switch that can go wrong. Aula now asks for no output (`sinkId: { type: "none" }`) where the browser supports it.
+- When the microphone fails, a small "Details" line says which step failed, for example "Chrome 153, system default: the mic didn't open within 8s; tried the browser's default mic instead; then speech recognition error audio-capture". A teacher can pass that on instead of a screenshot of a spinner.
