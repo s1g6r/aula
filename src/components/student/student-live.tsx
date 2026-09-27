@@ -137,7 +137,9 @@ export function StudentLive({ lesson, me }: Props) {
   };
 
   return (
-    <div className="flex h-dvh flex-col">
+    // Arabic and Dari readers get a mirrored screen; English lines keep their
+    // own left-to-right direction.
+    <div className="flex h-dvh flex-col" dir={language?.dir ?? "ltr"} lang={lang}>
       <header className="flex items-center justify-between gap-2 border-b bg-card/70 px-4 py-2.5 backdrop-blur">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{lesson.title ?? "Live lesson"}</p>
