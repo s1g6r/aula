@@ -405,3 +405,16 @@ Everything below was run against the live site, https://aulaapp.xyz, after deplo
 **What changed anyway:**
 - The level meter no longer opens the speakers. In Chrome an AudioContext plays to the output device by default even when it only analyses the microphone. With AirPods as the output, that's one more Bluetooth switch that can go wrong. Aula now asks for no output (`sinkId: { type: "none" }`) where the browser supports it.
 - When the microphone fails, a small "Details" line says which step failed, for example "Chrome 153, system default: the mic didn't open within 8s; tried the browser's default mic instead; then speech recognition error audio-capture". A teacher can pass that on instead of a screenshot of a spinner.
+
+---
+
+## Security headers and blocked networks (Sep 27)
+
+**What happened:** a friend testing on a university network saw aulaapp.xyz blocked as "dangerous". Google Safe Browsing has no warning on file for the site. The domain was registered on Sep 26, and network filters commonly block domains younger than about 30 days (and often `.xyz` addresses in general). It's a reputation problem, not a vulnerability.
+
+**What we did:**
+- **Security headers on every response** (`next.config.ts`): a content security policy that only allows Aula's own scripts, styles, fonts and connections and forbids framing; HSTS; `nosniff`; `X-Frame-Options: DENY`; a referrer policy; a permissions policy that allows only the microphone, and only for Aula itself; and no `X-Powered-By`. Aula loads nothing from other sites (next/font serves the fonts, the QR code is an inline SVG), so the policy can be strict. `e2e/security.spec.ts` checks the headers and that no screen has a blocked resource.
+- **`/.well-known/security.txt`** says where to report a security problem.
+- **A backup address and recategorization steps** are in `docs/DEPLOY.md`. The Render address (`aula-u9nw.onrender.com`) is the same app on an established domain, and join links follow whichever address the teacher used.
+
+**A phone problem found in the same test:** the teacher screen on an iPhone showed "Microphone blocked, click the icon in the address bar". The new details line showed the real error, `service-not-allowed`. In Safari that means speech recognition itself is switched off (it relies on Dictation, and Safari needs Speech Recognition permission), not the microphone. That error now has its own message with the exact Settings path for iPhone, iPad or Mac. The status line also names the right company for each browser: Apple for Safari, Google for Chrome, Microsoft for Edge. It used to say "Google" everywhere.
