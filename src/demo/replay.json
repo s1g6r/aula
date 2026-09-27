@@ -1,9 +1,9 @@
 {
   "note": "Recorded by scripts/generate-replay.mts: the scripted lesson played through Aula's live pipeline. Translations, definitions, the speech-recognition repair and the recap are real AI output; delays are the ones measured. The teacher's sentences were typed at speaking pace instead of spoken.",
-  "generatedAt": "2026-09-27T00:47:59.108Z",
+  "generatedAt": "2026-09-27T16:26:46.849Z",
   "models": {
     "translate": "Qwen/Qwen3-30B-A3B-Instruct-2507",
-    "glossaryAndRecap": "google/gemma-4-26B-A4B-it"
+    "glossaryAndRecap": "Qwen/Qwen3-30B-A3B-Instruct-2507"
   },
   "lesson": {
     "title": "Photosynthesis",
@@ -105,22 +105,22 @@
         "es": {
           "text": "Buenos días a todos, hoy estamos aprendiendo sobre la fotosíntesis.",
           "terms": [],
-          "latencyMs": 1692
+          "latencyMs": 1194
         },
         "ar": {
           "text": "صباح الخير جميعًا، اليوم نتعلم عن التمثيل الضوئي.",
           "terms": [],
-          "latencyMs": 2313
+          "latencyMs": 1811
         },
         "vi": {
-          "text": "Chào buổi sáng mọi người, hôm nay chúng ta sẽ học về quang hợp.",
+          "text": "Chào buổi sáng mọi người, hôm nay chúng ta đang học về quang hợp.",
           "terms": [],
-          "latencyMs": 2909
+          "latencyMs": 2400
         },
         "zh-Hans": {
           "text": "大家早上好，今天我们要学习光合作用。",
           "terms": [],
-          "latencyMs": 3358
+          "latencyMs": 2849
         }
       }
     },
@@ -132,22 +132,22 @@
         "es": {
           "text": "La fotosíntesis es cómo las plantas hacen su propia comida, usando la luz del sol.",
           "terms": [],
-          "latencyMs": 2931
+          "latencyMs": 1318
         },
         "ar": {
-          "text": "ال fotosynthesis هي الطريقة التي تصنع بها النباتات طعامها الخاص، باستخدام ضوء الشمس.",
+          "text": "التمثيل الضوئي هو كيف تصنع النباتات طعامها الخاص، باستخدام ضوء الشمس.",
           "terms": [],
-          "latencyMs": 3668
+          "latencyMs": 2092
         },
         "vi": {
-          "text": "Quang hợp là cách mà thực vật tự tạo ra thức ăn của chúng, sử dụng ánh sáng mặt trời.",
+          "text": "Quang hợp là cách mà thực vật tự làm thức ăn của chúng, sử dụng ánh sáng mặt trời.",
           "terms": [],
-          "latencyMs": 4399
+          "latencyMs": 2851
         },
         "zh-Hans": {
           "text": "光合作用是植物利用阳光制造自己食物的方式。",
           "terms": [],
-          "latencyMs": 4890
+          "latencyMs": 3920
         }
       }
     },
@@ -157,24 +157,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "Piensa en una hoja: dentro de cada hoja hay partes diminutas llamadas cloroplastos.",
+          "text": "Piensa en una hoja: dentro de cada hoja hay partes pequeñas llamadas cloroplastos.",
           "terms": [],
-          "latencyMs": 1313
+          "latencyMs": 1381
         },
         "ar": {
-          "text": "فكّر في ورقة النبات: داخل كل ورقة هناك أجزاء صغيرة تُسمى البلاستيدات الخضراء.",
+          "text": "فكّر في ورقة النبات: داخل كل ورقة هناك أجزاء صغيرة تُسمى بُلْعَمَةٌ خَضْرَاءُ.",
           "terms": [],
-          "latencyMs": 2279
+          "latencyMs": 2625
         },
         "vi": {
           "text": "Hãy nghĩ về một chiếc lá: bên trong mỗi chiếc lá đều có những bộ phận nhỏ gọi là lục lạp.",
           "terms": [],
-          "latencyMs": 3102
+          "latencyMs": 3448
         },
         "zh-Hans": {
-          "text": "想一想一片叶子：每片叶子内部都有微小的结构，称为叶绿体。",
+          "text": "想一想一片叶子：每片叶子内部都有微小的结构，叫做叶绿体。",
           "terms": [],
-          "latencyMs": 4220
+          "latencyMs": 4181
         }
       }
     },
@@ -186,22 +186,22 @@
         "es": {
           "text": "Los cloroplastos son verdes porque están llenos de clorofila.",
           "terms": [],
-          "latencyMs": 1218
+          "latencyMs": 1126
         },
         "ar": {
-          "text": "البلاستيدات الخضراء خضراء لأنها مليئة بصبغة الكلوروفيل.",
+          "text": "البُلْعَمَةُ الخَضْرَاءُ خضراء لأنها مليئة بكلوروفيل.",
           "terms": [],
-          "latencyMs": 1980
+          "latencyMs": 2106
         },
         "vi": {
-          "text": "Lục lạp có màu xanh vì chúng đầy chất diệp lục.",
+          "text": "Lục lạp có màu xanh vì chúng đầy diệp lục.",
           "terms": [],
-          "latencyMs": 2615
+          "latencyMs": 2735
         },
         "zh-Hans": {
           "text": "叶绿体是绿色的，因为它们充满了叶绿素。",
           "terms": [],
-          "latencyMs": 3155
+          "latencyMs": 3271
         }
       }
     },
@@ -211,24 +211,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "La clorofila captura la energía de la luz solar, algo así como un panel solar.",
+          "text": "La clorofila captura la energía en la luz solar, algo así como un panel solar.",
           "terms": [],
-          "latencyMs": 1430
+          "latencyMs": 1245
         },
         "ar": {
-          "text": "تُمتص طاقة ضوء الشمس بواسطة الكلوروفيل، تمامًا مثل لوحة شمسية.",
+          "text": "يُمتص الطاقة في ضوء الشمس بواسطة الكلوروفيل، بشكل ما مثل لوحة شمسية.",
           "terms": [],
-          "latencyMs": 2165
+          "latencyMs": 2006
         },
         "vi": {
-          "text": "Diệp lục bắt giữ năng lượng từ ánh sáng mặt trời, giống như một tấm pin mặt trời.",
+          "text": "Diệp lục bắt giữ năng lượng trong ánh sáng mặt trời, giống như một tấm pin mặt trời.",
           "terms": [],
-          "latencyMs": 2876
+          "latencyMs": 3411
         },
         "zh-Hans": {
           "text": "叶绿素吸收阳光中的能量，有点像太阳能板。",
           "terms": [],
-          "latencyMs": 3387
+          "latencyMs": 3922
         }
       }
     },
@@ -240,22 +240,22 @@
         "es": {
           "text": "La planta también necesita dos ingredientes: agua del suelo y dióxido de carbono del aire.",
           "terms": [],
-          "latencyMs": 3964
+          "latencyMs": 1296
         },
         "ar": {
-          "text": "تحتاج النبات أيضًا إلى مادتين مكوّنتين: الماء من التربة وثاني أكسيد الكربون من الهواء.",
+          "text": "تحتاج النبات أيضًا إلى مادتين: الماء من التربة وثاني أكسيد الكربون من الهواء.",
           "terms": [],
-          "latencyMs": 5038
+          "latencyMs": 2224
         },
         "vi": {
-          "text": "Cây cũng cần hai thành phần: nước từ đất và carbon dioxide từ không khí.",
+          "text": "Cây cũng cần hai nguyên liệu: nước từ đất và carbon đioxide từ không khí.",
           "terms": [],
-          "latencyMs": 5602
+          "latencyMs": 2812
         },
         "zh-Hans": {
-          "text": "植物还需要两种成分：来自土壤的水和来自空气的二氧化碳。",
+          "text": "植物还需要两种原料：来自土壤的水和来自空气的二氧化碳.",
           "terms": [],
-          "latencyMs": 6168
+          "latencyMs": 3347
         }
       }
     },
@@ -267,22 +267,22 @@
         "es": {
           "text": "El agua entra en las células de la planta a través de la membrana celular.",
           "terms": [],
-          "latencyMs": 3387
+          "latencyMs": 1267
         },
         "ar": {
           "text": "تدخل الماء إلى خلايا النبات من خلال الغشاء الخلوي.",
           "terms": [],
-          "latencyMs": 3903
+          "latencyMs": 1773
         },
         "vi": {
           "text": "Nước đi vào các tế bào thực vật qua màng tế bào.",
           "terms": [],
-          "latencyMs": 4392
+          "latencyMs": 2252
         },
         "zh-Hans": {
           "text": "水通过细胞膜进入植物细胞。",
           "terms": [],
-          "latencyMs": 4767
+          "latencyMs": 2637
         }
       }
     },
@@ -292,24 +292,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "Ahora viene la parte difícil, así que quédate conmigo.",
+          "text": "Ahora viene la parte complicada, así que quédate conmigo.",
           "terms": [],
-          "latencyMs": 1159
+          "latencyMs": 1251
         },
         "ar": {
-          "text": "الآن يأتي الجزء الصعب، لذا تابعني.",
+          "text": "الآن جاء الجزء الصعب، لذا تابعني.",
           "terms": [],
-          "latencyMs": 1611
+          "latencyMs": 1703
         },
         "vi": {
           "text": "Bây giờ là phần khó, vậy nên hãy theo dõi tôi.",
           "terms": [],
-          "latencyMs": 2095
+          "latencyMs": 2183
         },
         "zh-Hans": {
           "text": "现在是难点部分，所以请跟我一起。",
           "terms": [],
-          "latencyMs": 2532
+          "latencyMs": 2608
         }
       }
     },
@@ -321,22 +321,22 @@
         "es": {
           "text": "La energía lumínica se almacena en una molécula llamada ATP, que funciona como una batería pequeña.",
           "terms": [],
-          "latencyMs": 1453
+          "latencyMs": 1660
         },
         "ar": {
-          "text": "تُخزن الطاقة الضوئية في جزيء يُسمى ATP، والذي يعمل مثل بطارية صغيرة.",
+          "text": "تُخزن الطاقة الضوئية في جزيء يُسمى الطاقة الحيوية، التي تعمل كبطارية صغيرة.",
           "terms": [],
-          "latencyMs": 2295
+          "latencyMs": 2609
         },
         "vi": {
           "text": "Năng lượng ánh sáng được lưu trữ trong một phân tử gọi là ATP, hoạt động như một cục pin nhỏ.",
           "terms": [],
-          "latencyMs": 3055
+          "latencyMs": 3370
         },
         "zh-Hans": {
-          "text": "光能被储存在一种叫做ATP的分子中，它像一个小电池一样工作。",
+          "text": "光能被储存在一种叫做三磷酸腺苷的分子中，它像一个小电池一样工作。",
           "terms": [],
-          "latencyMs": 3756
+          "latencyMs": 4898
         }
       }
     },
@@ -348,22 +348,22 @@
         "es": {
           "text": "Entonces, el ciclo de Calvin utiliza ese ATP para convertir dióxido de carbono en glucosa.",
           "terms": [],
-          "latencyMs": 1508
+          "latencyMs": 1380
         },
         "ar": {
-          "text": "ثم يُستخدم دورة كالفن ذلك ATP لتحويل ثاني أكسيد الكربون إلى جلوكوز.",
+          "text": "ثم تستخدم دورة كالفن هذا الطاقة الحيوية لتحويل ثاني أكسيد الكربون إلى الجلوكوز.",
           "terms": [],
-          "latencyMs": 2281
+          "latencyMs": 2222
         },
         "vi": {
-          "text": "Sau đó, chu trình Calvin sử dụng ATP đó để chuyển đổi carbon dioxide thành glucose.",
+          "text": "Sau đó, Vòng Calvin sử dụng ATP đó để chuyển carbon đioxide thành glucose.",
           "terms": [],
-          "latencyMs": 2880
+          "latencyMs": 2813
         },
         "zh-Hans": {
-          "text": "然后，卡尔文循环利用这种ATP将二氧化碳转化为葡萄糖。",
+          "text": "然后，卡尔文循环利用这种三磷酸腺苷将二氧化碳转化为葡萄糖。",
           "terms": [],
-          "latencyMs": 3446
+          "latencyMs": 3432
         }
       }
     },
@@ -375,22 +375,22 @@
         "es": {
           "text": "La glucosa es un azúcar, y es la comida de la planta.",
           "terms": [],
-          "latencyMs": 1187
+          "latencyMs": 1163
         },
         "ar": {
           "text": "الجلوكوز هو سكر، وهو طعام النبات.",
           "terms": [],
-          "latencyMs": 1645
+          "latencyMs": 1621
         },
         "vi": {
           "text": "Glucose là một loại đường, và nó là thức ăn của thực vật.",
           "terms": [],
-          "latencyMs": 2172
+          "latencyMs": 2129
         },
         "zh-Hans": {
-          "text": "葡萄糖是一种糖，是植物的食物。",
+          "text": "葡萄糖是一种糖，它是植物的食物。",
           "terms": [],
-          "latencyMs": 2580
+          "latencyMs": 2524
         }
       }
     },
@@ -400,24 +400,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "Déjeme decirlo de nuevo más simplemente: la planta usa energía almacenada para construir azúcar a partir del aire.",
+          "text": "Déjeme decirlo de nuevo de forma más sencilla: la planta usa energía almacenada para construir azúcar a partir del aire.",
           "terms": [],
-          "latencyMs": 4010
+          "latencyMs": 1605
         },
         "ar": {
           "text": "دعوني أقول ذلك مرة أخرى بشكل أبسط: تستخدم النباتات الطاقة المخزنة لبناء السكر من الهواء.",
           "terms": [],
-          "latencyMs": 4965
+          "latencyMs": 2537
         },
         "vi": {
-          "text": "Hãy để tôi nói lại một cách đơn giản hơn: cây sử dụng năng lượng dự trữ để tạo đường từ không khí.",
+          "text": "Hãy để tôi nói lại một cách đơn giản hơn: cây sử dụng năng lượng được lưu trữ để tạo đường từ không khí.",
           "terms": [],
-          "latencyMs": 5787
+          "latencyMs": 3383
         },
         "zh-Hans": {
           "text": "让我再简单地说一遍：植物利用储存的能量，把空气变成糖。",
           "terms": [],
-          "latencyMs": 6380
+          "latencyMs": 3975
         }
       }
     },
@@ -427,24 +427,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "Y como bonificación, las plantas liberan oxígeno, que es el oxígeno que nosotros respiramos.",
+          "text": "Y como un beneficio adicional, las plantas liberan oxígeno, que es el oxígeno que nosotros respiramos.",
           "terms": [],
-          "latencyMs": 1566
+          "latencyMs": 3718
         },
         "ar": {
           "text": "وبالإضافة إلى ذلك، تطلق النباتات الأكسجين، وهو الأكسجين الذي نتنفسه.",
           "terms": [],
-          "latencyMs": 2392
+          "latencyMs": 4538
         },
         "vi": {
           "text": "Và như một phần thưởng, cây trồng thải ra oxy, chính là oxy mà chúng ta hít vào.",
           "terms": [],
-          "latencyMs": 3125
+          "latencyMs": 5270
         },
         "zh-Hans": {
-          "text": "而且作为额外收获，植物会释放氧气，也就是我们呼吸的氧气。",
+          "text": "而且作为额外的好处，植物会释放氧气，也就是我们呼吸的氧气。",
           "terms": [],
-          "latencyMs": 3722
+          "latencyMs": 5871
         }
       }
     },
@@ -454,24 +454,24 @@
       "fixedText": null,
       "translations": {
         "es": {
-          "text": "Así que recuerda la receta: la luz solar, el agua y el dióxido de carbono entran; la glucosa y el oxígeno salen.",
+          "text": "Entonces recuerda la receta: la luz solar, el agua y el dióxido de carbono entran; la glucosa y el oxígeno salen.",
           "terms": [],
-          "latencyMs": 1816
+          "latencyMs": 1956
         },
         "ar": {
           "text": "إذًا تذكّر الوصفة: تدخل الضوء الشمسي والماء وثاني أكسيد الكربون؛ وتخرج الجلوكوز والأكسجين.",
           "terms": [],
-          "latencyMs": 3117
+          "latencyMs": 3917
         },
         "vi": {
-          "text": "Vì vậy hãy nhớ công thức: ánh sáng mặt trời, nước và carbon dioxide đi vào; glucose và oxy đi ra.",
+          "text": "Vì vậy hãy nhớ công thức: ánh sáng mặt trời, nước và carbon đioxide đi vào; glucose và oxy đi ra.",
           "terms": [],
-          "latencyMs": 3938
+          "latencyMs": 4777
         },
         "zh-Hans": {
           "text": "所以记住这个配方：阳光、水和二氧化碳进入；葡萄糖和氧气出来。",
           "terms": [],
-          "latencyMs": 4589
+          "latencyMs": 5424
         }
       }
     },
@@ -483,22 +483,22 @@
         "es": {
           "text": "Alguien preguntó por qué la planta necesita ATP: lleva la energía de la luz solar al ciclo de Calvin.",
           "terms": [],
-          "latencyMs": 1462
+          "latencyMs": 1445
         },
         "ar": {
-          "text": "سُئل أحد الأشخاص لماذا تحتاج النباتات إلى ATP: فهو يحمل الطاقة من الضوء الشمسي إلى دورة كالفن.",
+          "text": "سُئل لماذا تحتاج النباتات إلى الطاقة الحيوية: فهي تحمل الطاقة من الضوء الشمسي إلى دورة كالفن.",
           "terms": [],
-          "latencyMs": 3080
+          "latencyMs": 2436
         },
         "vi": {
-          "text": "Có người hỏi tại sao cây cần ATP: nó mang năng lượng từ ánh sáng mặt trời đến chu trình Calvin.",
+          "text": "Có người hỏi tại sao cây cần ATP: nó mang năng lượng từ ánh sáng mặt trời đến Vòng Calvin.",
           "terms": [],
-          "latencyMs": 4555
+          "latencyMs": 3228
         },
         "zh-Hans": {
-          "text": "有人问植物为什么需要ATP：它把阳光的能量带到卡尔文循环。",
+          "text": "有人问植物为什么需要三磷酸腺苷：它把阳光的能量带到卡尔文循环。",
           "terms": [],
-          "latencyMs": 6040
+          "latencyMs": 3926
         }
       }
     },
@@ -510,22 +510,22 @@
         "es": {
           "text": "Para tarea, dibuja una hoja y etiqueta dónde ocurre cada paso.",
           "terms": [],
-          "latencyMs": 1734
+          "latencyMs": 1189
         },
         "ar": {
-          "text": "للمهمة المنزلية، ارسم ورقة وعلّق مكان حدوث كل خطوة.",
+          "text": "للمهمة المنزلية، ارسم ورقة وعلّم مكان حدوث كل خطوة.",
           "terms": [],
-          "latencyMs": 2439
+          "latencyMs": 1891
         },
         "vi": {
-          "text": "Về nhà, vẽ một chiếc lá và ghi nhãn nơi xảy ra từng bước.",
+          "text": "Để làm bài tập về nhà, hãy vẽ một chiếc lá và ghi nhãn nơi xảy ra từng bước.",
           "terms": [],
-          "latencyMs": 3074
+          "latencyMs": 2596
         },
         "zh-Hans": {
           "text": "作业：画一片叶子，并标出每个步骤发生的位置。",
           "terms": [],
-          "latencyMs": 3579
+          "latencyMs": 3117
         }
       }
     },
@@ -537,22 +537,22 @@
         "es": {
           "text": "Eso es todo por hoy, buen trabajo a todos.",
           "terms": [],
-          "latencyMs": 1108
+          "latencyMs": 1103
         },
         "ar": {
           "text": "هذا كل شيء اليوم، عمل رائع من الجميع.",
           "terms": [],
-          "latencyMs": 1475
+          "latencyMs": 1545
         },
         "vi": {
-          "text": "Hết phần hôm nay, làm tốt lắm mọi người.",
+          "text": "Hết buổi học hôm nay, làm việc tốt lắm mọi người.",
           "terms": [],
-          "latencyMs": 2889
+          "latencyMs": 2559
         },
         "zh-Hans": {
-          "text": "今天就到这里，大家做得很好。",
+          "text": "今天就到这里，大家表现得很好。",
           "terms": [],
-          "latencyMs": 3258
+          "latencyMs": 2925
         }
       }
     }
@@ -562,188 +562,188 @@
       {
         "en": "photosynthesis",
         "tr": "fotosíntesis",
-        "gloss": "Proceso donde las plantas usan la luz para hacer su comida."
+        "gloss": "Proceso por el cual las plantas hacen su comida con luz solar."
       },
       {
         "en": "chloroplast",
         "tr": "cloroplasto",
-        "gloss": "Parte de la célula donde ocurre la fotosíntesis."
+        "gloss": "Orgánulo que hace la fotosíntesis en las plantas."
       },
       {
         "en": "chlorophyll",
         "tr": "clorofila",
-        "gloss": "Pigmento verde que atrapa la energía de la luz."
+        "gloss": "Es un pigmento verde que ayuda a las plantas a hacer fotosíntesis."
       },
       {
         "en": "carbon dioxide",
         "tr": "dióxido de carbono",
-        "gloss": "Un gas que las plantas usan para fabricar su alimento."
+        "gloss": "Gas que las plantas usan para hacer comida."
       },
       {
         "en": "glucose",
         "tr": "glucosa",
-        "gloss": "El azúcar que las plantas usan como energía."
+        "gloss": "Es un azúcar que las plantas hacen con luz solar."
       },
       {
         "en": "oxygen",
         "tr": "oxígeno",
-        "gloss": "El gas que las plantas liberan al aire."
+        "gloss": "Gas que producen las plantas durante la fotosíntesis."
       },
       {
         "en": "atp",
         "tr": "ATP",
-        "gloss": "Es la molécula que da energía a la célula."
+        "gloss": "Es la molécula que almacena energía en las células."
       },
       {
         "en": "calvin cycle",
-        "tr": "Ciclo de Calvin",
-        "gloss": "Es el proceso donde la planta fabrica azúcar."
+        "tr": "ciclo de Calvin",
+        "gloss": "Proceso que convierte dióxido de carbono en azúcar."
       },
       {
         "en": "cell membrane",
         "tr": "membrana celular",
-        "gloss": "Es la capa que rodea y protege la célula."
+        "gloss": "Protege la célula y controla lo que entra y sale."
       }
     ],
     "ar": [
       {
         "en": "photosynthesis",
-        "tr": "البناء الضوئي",
-        "gloss": "عملية صنع النبات لغدائه باستخدام ضوء الشمس."
+        "tr": "التمثيل الضوئي",
+        "gloss": "عملية استخدام النباتات للضوء لصنع طعامها."
       },
       {
         "en": "chloroplast",
-        "tr": "البلاستيدة الخضراء",
-        "gloss": "جزء صغير داخل الخلية النباتية يصنع الغذاء."
+        "tr": "بُلْعَمَةٌ خَضْرَاءُ",
+        "gloss": "مَكَانُ تَحَوُّلِ الضَّوْءِ إِلَى طَاقَةٍ فِي النَّبَاتِ"
       },
       {
         "en": "chlorophyll",
-        "tr": "الكلوروفيل",
-        "gloss": "المادة الخضراء التي تمتص ضوء الشمس."
+        "tr": "كلوروفيل",
+        "gloss": "مادة خضراء تساعد النباتات على امتصاص ضوء الشمس."
       },
       {
         "en": "carbon dioxide",
         "tr": "ثاني أكسيد الكربون",
-        "gloss": "غاز يمتصه النبات من الهواء لصنع الغذاء."
+        "gloss": "غاز يُستخدم في عملية البناء الضوئي"
       },
       {
         "en": "glucose",
-        "tr": "جلوكوز",
-        "gloss": "نوع من السكر يستخدمه النبات للحصول على الطاقة."
+        "tr": "الجلوكوز",
+        "gloss": "سكر يُنتَج من الضوء والثاني أكسيد الكربون"
       },
       {
         "en": "oxygen",
-        "tr": "أكسجين",
-        "gloss": "غاز يطلقه النبات في الهواء ليتنفسه الإنسان."
+        "tr": "الأكسجين",
+        "gloss": "غاز يُنتَج خلال التمثيل الضوئي."
       },
       {
         "en": "atp",
-        "tr": "أدينوسين ثلاثي الفوسفات",
-        "gloss": "جزيء يحمل الطاقة اللازمة للعمليات الحيوية داخل الخلية."
+        "tr": "الطاقة الحيوية",
+        "gloss": "مصدر طاقة خلية للعمليات الحيوية."
       },
       {
         "en": "calvin cycle",
         "tr": "دورة كالفن",
-        "gloss": "مرحلة في البناء الضوئي تصنع السكر باستخدام الطاقة."
+        "gloss": "مرحلة تصنع السكر من ثاني أكسيد الكربون."
       },
       {
         "en": "cell membrane",
-        "tr": "غشاء الخلية",
-        "gloss": "غلاف رقيق يحيط بالخلية ويحمي مكوناتها."
+        "tr": "الغشاء الخلوي",
+        "gloss": "غشاء رقيق يحيط بالخلية ويتحكم في دخول المواد."
       }
     ],
     "vi": [
       {
         "en": "photosynthesis",
         "tr": "quang hợp",
-        "gloss": "Quá trình cây xanh dùng ánh sáng để tạo ra thức ăn."
+        "gloss": "Thực vật tạo thức ăn từ ánh sáng mặt trời."
       },
       {
         "en": "chloroplast",
         "tr": "lục lạp",
-        "gloss": "Bộ phận nhỏ trong tế bào giúp cây thực hiện quang hợp."
+        "gloss": "Bộ phận trong tế bào thực vật tạo ra thức ăn."
       },
       {
         "en": "chlorophyll",
         "tr": "diệp lục",
-        "gloss": "Chất màu xanh giúp hấp thụ năng lượng từ ánh sáng."
+        "gloss": "Chất màu xanh giúp cây hấp thụ ánh sáng."
       },
       {
         "en": "carbon dioxide",
-        "tr": "khí cacbonic",
-        "gloss": "Một loại khí mà cây hấp thụ từ không khí."
+        "tr": "carbon đioxide",
+        "gloss": "Một khí mà thực vật hấp thụ để tạo thức ăn."
       },
       {
         "en": "glucose",
-        "tr": "đường glucose",
-        "gloss": "Loại đường cung cấp năng lượng cho cây."
+        "tr": "glucose",
+        "gloss": "Một loại đường được tạo ra trong quang hợp."
       },
       {
         "en": "oxygen",
-        "tr": "khí oxi",
-        "gloss": "Loại khí cây giải phóng ra môi trường."
+        "tr": "oxy",
+        "gloss": "Chất khí giúp con người và động vật thở."
       },
       {
         "en": "atp",
         "tr": "ATP",
-        "gloss": "Năng lượng được tế bào sử dụng để thực hiện các hoạt động."
+        "gloss": "Năng lượng tế bào dùng để làm việc."
       },
       {
         "en": "calvin cycle",
-        "tr": "Chu trình Calvin",
-        "gloss": "Quá trình tạo ra đường trong tế bào thực vật."
+        "tr": "Vòng Calvin",
+        "gloss": "Sử dụng CO2 để tạo đường trong thực vật."
       },
       {
         "en": "cell membrane",
         "tr": "màng tế bào",
-        "gloss": "Lớp bao quanh bảo vệ và kiểm soát các chất vào tế bào."
+        "gloss": "Bao bọc tế bào, kiểm soát chất đi vào và ra."
       }
     ],
     "zh-Hans": [
       {
         "en": "photosynthesis",
         "tr": "光合作用",
-        "gloss": "植物利用阳光制造食物的过程。"
+        "gloss": "植物用阳光制造食物。"
       },
       {
         "en": "chloroplast",
         "tr": "叶绿体",
-        "gloss": "植物细胞中制造食物的小器官。"
+        "gloss": "叶绿体是植物细胞中进行光合作用的地方。"
       },
       {
         "en": "chlorophyll",
         "tr": "叶绿素",
-        "gloss": "让植物变绿并吸收阳光的物质。"
+        "gloss": "叶绿素让叶子变成绿色。"
       },
       {
         "en": "carbon dioxide",
         "tr": "二氧化碳",
-        "gloss": "植物在光合作用中吸收的一种气体。"
+        "gloss": "植物吸收二氧化碳来制造食物。"
       },
       {
         "en": "glucose",
         "tr": "葡萄糖",
-        "gloss": "植物通过光合作用制造出的糖分。"
+        "gloss": "一种植物通过光合作用制造的糖。"
       },
       {
         "en": "oxygen",
         "tr": "氧气",
-        "gloss": "植物在光合作用过程中释放出的气体。"
+        "gloss": "植物光合作用时释放的气体。"
       },
       {
         "en": "atp",
         "tr": "三磷酸腺苷",
-        "gloss": "细胞用来储存和使用的能量分子。"
+        "gloss": "细胞使用的能量货币。"
       },
       {
         "en": "calvin cycle",
         "tr": "卡尔文循环",
-        "gloss": "植物利用二氧化碳制造糖的过程。"
+        "gloss": "植物用二氧化碳制造糖的步骤。"
       },
       {
         "en": "cell membrane",
         "tr": "细胞膜",
-        "gloss": "包裹并保护细胞的薄层。"
+        "gloss": "保护细胞并控制物质进出。"
       }
     ]
   },
@@ -780,309 +780,319 @@
   "recap": {
     "english": {
       "summary": [
-        "Today we learned about photosynthesis, which is how plants use sunlight to make food.",
-        "Plants use chloroplasts and chlorophyll to catch energy from the sun.",
-        "The plant uses water and carbon dioxide to create glucose and oxygen.",
-        "Energy from sunlight is stored in ATP to help the Calvin cycle turn carbon dioxide into sugar."
+        "Photosynthesis is how plants make their own food using sunlight.",
+        "Chloroplasts in leaves contain chlorophyll, which captures sunlight.",
+        "Water enters through the cell membrane, and carbon dioxide comes from the air.",
+        "The plant uses sunlight energy to make ATP, which powers the Calvin cycle to create glucose.",
+        "Oxygen is released as a byproduct of photosynthesis."
       ],
       "keyTerms": [
         {
           "term": "photosynthesis",
-          "definition": "The process of how plants make their own food using sunlight."
+          "definition": "The process where plants make their own food using sunlight, water, and carbon dioxide."
         },
         {
           "term": "chloroplast",
-          "definition": "Tiny parts inside every leaf."
+          "definition": "A part inside plant cells where photosynthesis happens."
         },
         {
           "term": "chlorophyll",
-          "definition": "A substance that makes chloroplasts green and catches energy from sunlight."
+          "definition": "A green substance in chloroplasts that catches sunlight."
         },
         {
           "term": "carbon dioxide",
-          "definition": "An ingredient from the air used to make food."
+          "definition": "A gas from the air that plants use during photosynthesis."
         },
         {
           "term": "glucose",
-          "definition": "A sugar that serves as the plant's food."
+          "definition": "A sugar that plants make and use as food."
         },
         {
           "term": "oxygen",
-          "definition": "A gas that plants release which we breathe."
+          "definition": "A gas released by plants during photosynthesis that we breathe."
         },
         {
           "term": "ATP",
-          "definition": "A molecule that stores light energy and works like a tiny battery."
+          "definition": "A molecule that stores energy from sunlight for use in making glucose."
         },
         {
           "term": "Calvin cycle",
-          "definition": "The process that uses ATP to turn carbon dioxide into glucose."
+          "definition": "A series of steps that use ATP to turn carbon dioxide into glucose."
         }
       ],
       "checkQuestions": [
         {
-          "q": "What is the function of chlorophyll?",
-          "answer": "It catches the energy in sunlight."
+          "q": "What is the main purpose of photosynthesis?",
+          "answer": "To make food (glucose) for the plant using sunlight."
         },
         {
-          "q": "How does water get into the plant cells?",
-          "answer": "It gets in through the cell membrane."
+          "q": "Where does the plant get carbon dioxide?",
+          "answer": "From the air."
         },
         {
-          "q": "What does the Calvin cycle use to turn carbon dioxide into glucose?",
-          "answer": "It uses ATP."
+          "q": "What is released as a byproduct of photosynthesis?",
+          "answer": "Oxygen."
         }
       ]
     },
     "translations": {
+      "ar": {
+        "summary": [
+          "ال fotosynthesis هي الطريقة التي تصنع بها النباتات طعامها الخاص باستخدام ضوء الشمس.",
+          "تحتوي البلاستيدات الخضراء في الأوراق على الكلوروفيل، الذي يمتص ضوء الشمس.",
+          "تدخل الماء من خلال الغشاء الخلوي، ويأتي ثاني أكسيد الكربون من الهواء.",
+          "تستخدم النباتات طاقة ضوء الشمس لصنع ATP، الذي يُشغّل دورة كالفن لإنتاج الجلوكوز.",
+          "يُطلق الأكسجين كمنتج ثانوي لعملية التمثيل الضوئي."
+        ],
+        "keyTerms": [
+          {
+            "tr": "التمثيل الضوئي",
+            "term": "photosynthesis",
+            "definition": "العملية التي تصنع بها النباتات طعامها الخاص باستخدام الضوء الشمسي والماء وثاني أكسيد الكربون."
+          },
+          {
+            "tr": "البلاستيد الأحمر",
+            "term": "chloroplast",
+            "definition": "الجزء داخل خلايا النبات الذي يحدث فيه التمثيل الضوئي."
+          },
+          {
+            "tr": "الكلوروفيل",
+            "term": "chlorophyll",
+            "definition": "مادة خضراء داخل البلاستيدات الحمر تُمتص الضوء الشمسي."
+          },
+          {
+            "tr": "ثاني أكسيد الكربون",
+            "term": "carbon dioxide",
+            "definition": "غاز موجود في الهواء يستخدمه النبات أثناء التمثيل الضوئي."
+          },
+          {
+            "tr": "الجلوكوز",
+            "term": "glucose",
+            "definition": "سكر تصنعه النباتات وتستخدمه كطعام."
+          },
+          {
+            "tr": "الأكسجين",
+            "term": "oxygen",
+            "definition": "غاز يُطلقه النبات أثناء التمثيل الضوئي ويتنفسه البشر."
+          },
+          {
+            "tr": "الـATP",
+            "term": "ATP",
+            "definition": "جزيء يخزن الطاقة الناتجة عن الضوء الشمسي لاستخدامها في صنع الجلوكوز."
+          },
+          {
+            "tr": "دورة كالفن",
+            "term": "Calvin cycle",
+            "definition": "سلسلة من الخطوات تستخدم الطاقة (ATP) لتحويل ثاني أكسيد الكربون إلى جلوكوز."
+          }
+        ],
+        "checkQuestions": [
+          {
+            "q": "ما الغرض الرئيسي من التمثيل الضوئي؟",
+            "answer": "صنع الطعام (الجلوكوز) للنبات باستخدام الضوء الشمسي."
+          },
+          {
+            "q": "من أين يحصل النبات على ثاني أكسيد الكربون؟",
+            "answer": "من الهواء."
+          },
+          {
+            "q": "ما الغاز الذي يُطلق كمنتج ثانوي للتمثيل الضوئي؟",
+            "answer": "الأكسجين."
+          }
+        ]
+      },
       "es": {
         "summary": [
-          "Hoy aprendimos sobre la fotosíntesis, que es cómo las plantas usan la luz del sol para hacer comida.",
-          "Las plantas usan los cloroplastos y la clorofila para captar energía del sol.",
-          "La planta usa agua y dióxido de carbono para crear glucosa y oxígeno.",
-          "La energía de la luz solar se almacena en el ATP para ayudar al ciclo de Calvin a convertir dióxido de carbono en azúcar."
+          "La fotosíntesis es cómo las plantas hacen su propia comida usando la luz del sol.",
+          "Los cloroplastos en las hojas contienen clorofila, que capta la luz del sol.",
+          "El agua entra a través de la membrana celular, y el dióxido de carbono viene del aire.",
+          "La planta usa la energía del sol para hacer ATP, que impulsa el ciclo de Calvin para crear glucosa.",
+          "El oxígeno se libera como subproducto de la fotosíntesis."
         ],
         "keyTerms": [
           {
             "tr": "fotosíntesis",
             "term": "photosynthesis",
-            "definition": "El proceso mediante el cual las plantas hacen su propia comida usando la luz del sol."
+            "definition": "El proceso en el que las plantas hacen su propia comida usando luz solar, agua y dióxido de carbono."
           },
           {
             "tr": "cloroplasto",
             "term": "chloroplast",
-            "definition": "Pequeñas partes dentro de cada hoja."
+            "definition": "Una parte dentro de las células vegetales donde ocurre la fotosíntesis."
           },
           {
             "tr": "clorofila",
             "term": "chlorophyll",
-            "definition": "Una sustancia que hace que los cloroplastos sean verdes y capta la energía de la luz solar."
+            "definition": "Una sustancia verde en los cloroplastos que capta la luz solar."
           },
           {
             "tr": "dióxido de carbono",
             "term": "carbon dioxide",
-            "definition": "Un ingrediente del aire que se usa para hacer comida."
+            "definition": "Un gas del aire que las plantas usan durante la fotosíntesis."
           },
           {
             "tr": "glucosa",
             "term": "glucose",
-            "definition": "Un azúcar que sirve como comida para la planta."
+            "definition": "Un azúcar que las plantas hacen y usan como alimento."
           },
           {
             "tr": "oxígeno",
             "term": "oxygen",
-            "definition": "Un gas que las plantas liberan y que nosotros respiramos."
+            "definition": "Un gas liberado por las plantas durante la fotosíntesis que nosotros respiramos."
           },
           {
             "tr": "ATP",
             "term": "ATP",
-            "definition": "Una molécula que almacena energía luminosa y funciona como una batería pequeña."
+            "definition": "Una molécula que almacena energía de la luz solar para usarla en la fabricación de glucosa."
           },
           {
             "tr": "ciclo de Calvin",
             "term": "Calvin cycle",
-            "definition": "El proceso que usa ATP para convertir dióxido de carbono en glucosa."
+            "definition": "Una serie de pasos que usan ATP para convertir dióxido de carbono en glucosa."
           }
         ],
         "checkQuestions": [
           {
-            "q": "¿Cuál es la función de la clorofila?",
-            "answer": "Captar la energía de la luz solar."
+            "q": "¿Cuál es el propósito principal de la fotosíntesis?",
+            "answer": "Hacer comida (glucosa) para la planta usando luz solar."
           },
           {
-            "q": "¿Cómo entra el agua en las células de la planta?",
-            "answer": "Entrar a través de la membrana celular."
+            "q": "¿De dónde obtiene la planta el dióxido de carbono?",
+            "answer": "Del aire."
           },
           {
-            "q": "¿Qué usa el ciclo de Calvin para convertir dióxido de carbono en glucosa?",
-            "answer": "Usa ATP."
-          }
-        ]
-      },
-      "ar": {
-        "summary": [
-          "تعلمنا اليوم عن البناء الضوئي، وهو الطريقة التي تستخدم بها النباتات الضوء الشمسي لصنع الطعام.",
-          "تستخدم النباتات البلاستيدات الخضراء والكلوروفيل لامتصاص الطاقة من الشمس.",
-          "تستخدم النباتات الماء وثاني أكسيد الكربون لصنع الجلوكوز والأكسجين.",
-          "تُخزن الطاقة من الضوء الشمسي في جزيء ATP لمساعدة دورة كالفن على تحويل ثاني أكسيد الكربون إلى سكر."
-        ],
-        "keyTerms": [
-          {
-            "tr": "البناء الضوئي",
-            "term": "photosynthesis",
-            "definition": "العملية التي تصنع بها النباتات طعامها الخاص باستخدام الضوء الشمسي."
-          },
-          {
-            "tr": "البلاستيدة الخضراء",
-            "term": "chloroplast",
-            "definition": "أجزاء صغيرة داخل كل ورقة."
-          },
-          {
-            "tr": "الكلوروفيل",
-            "term": "chlorophyll",
-            "definition": "مادة تجعل البلاستيدات الخضراء خضراء وتمتص الطاقة من الضوء الشمسي."
-          },
-          {
-            "tr": "ثاني أكسيد الكربون",
-            "term": "carbon dioxide",
-            "definition": "مكوّن من الهواء يستخدم لصنع الطعام."
-          },
-          {
-            "tr": "الجلوكوز",
-            "term": "glucose",
-            "definition": "سكر يُعد طعام النبات."
-          },
-          {
-            "tr": "الأكسجين",
-            "term": "oxygen",
-            "definition": "غاز تطلقه النباتات والذي نتنفسه."
-          },
-          {
-            "tr": "ATP",
-            "term": "ATP",
-            "definition": "جزيء يخزن طاقة الضوء ويعمل مثل بطارية صغيرة."
-          },
-          {
-            "tr": "دورة كالفن",
-            "term": "Calvin cycle",
-            "definition": "العملية التي تستخدم فيها ATP لتحويل ثاني أكسيد الكربون إلى جلوكوز."
-          }
-        ],
-        "checkQuestions": [
-          {
-            "q": "ما وظيفة الكلوروفيل؟",
-            "answer": "إنه يمتص الطاقة الموجودة في الضوء الشمسي."
-          },
-          {
-            "q": "كيف يدخل الماء إلى خلايا النبات؟",
-            "answer": "يُدخل عبر الغشاء الخلوي."
-          },
-          {
-            "q": "ما الذي تستخدمه دورة كالفن لتحويل ثاني أكسيد الكربون إلى جلوكوز؟",
-            "answer": "تستخدم ATP."
-          }
-        ]
-      },
-      "zh-Hans": {
-        "summary": [
-          "今天我们学习了光合作用，这是植物利用阳光制造食物的过程。",
-          "植物通过叶绿体和叶绿素捕捉太阳的能量。",
-          "植物利用水和二氧化碳制造葡萄糖和氧气。",
-          "阳光中的能量被储存在ATP中，帮助卡尔文循环将二氧化碳转化为糖。"
-        ],
-        "keyTerms": [
-          {
-            "tr": "光合作用",
-            "term": "photosynthesis",
-            "definition": "植物利用阳光制造自身食物的过程。"
-          },
-          {
-            "tr": "叶绿体",
-            "term": "chloroplast",
-            "definition": "每片叶子内部的微小部分。"
-          },
-          {
-            "tr": "叶绿素",
-            "term": "chlorophyll",
-            "definition": "使叶绿体呈现绿色并捕捉阳光能量的物质。"
-          },
-          {
-            "tr": "二氧化碳",
-            "term": "carbon dioxide",
-            "definition": "空气中用于制造食物的成分。"
-          },
-          {
-            "tr": "葡萄糖",
-            "term": "glucose",
-            "definition": "一种作为植物食物的糖。"
-          },
-          {
-            "tr": "氧气",
-            "term": "oxygen",
-            "definition": "植物释放的气体，我们呼吸用。"
-          },
-          {
-            "tr": "ATP",
-            "term": "ATP",
-            "definition": "一种储存光能的分子，像一个小电池一样工作。"
-          },
-          {
-            "tr": "卡尔文循环",
-            "term": "Calvin cycle",
-            "definition": "利用ATP将二氧化碳转化为葡萄糖的过程。"
-          }
-        ],
-        "checkQuestions": [
-          {
-            "q": "叶绿素的功能是什么？",
-            "answer": "它捕捉阳光中的能量。"
-          },
-          {
-            "q": "水是如何进入植物细胞的？",
-            "answer": "它通过细胞膜进入。"
-          },
-          {
-            "q": "卡尔文循环用什么将二氧化碳转化为葡萄糖？",
-            "answer": "它使用ATP。"
+            "q": "¿Qué se libera como subproducto de la fotosíntesis?",
+            "answer": "Oxígeno."
           }
         ]
       },
       "vi": {
         "summary": [
-          "Hôm nay chúng ta học về quang hợp, đó là cách cây dùng ánh sáng mặt trời để tạo thức ăn.",
-          "Cây sử dụng lục lạp và diệp lục để bắt năng lượng từ mặt trời.",
-          "Cây dùng nước và khí carbon dioxide để tạo ra glucose và oxy.",
-          "Năng lượng từ ánh sáng mặt trời được lưu trữ trong ATP để giúp chu trình Calvin biến khí carbon dioxide thành đường."
+          "Quang hợp là cách cây tự sản xuất thức ăn bằng ánh sáng mặt trời.",
+          "Lục lạp trong lá chứa diệp lục, giúp hấp thụ ánh sáng.",
+          "Nước đi vào qua màng tế bào, và carbon dioxide đến từ không khí.",
+          "Cây sử dụng năng lượng ánh sáng để tạo ATP, dùng để thúc đẩy chu trình Calvin tạo ra glucose.",
+          "Oxy được giải phóng như một sản phẩm phụ của quang hợp."
         ],
         "keyTerms": [
           {
             "tr": "quang hợp",
             "term": "photosynthesis",
-            "definition": "Quá trình cây tự tạo thức ăn bằng ánh sáng mặt trời."
+            "definition": "Quá trình mà thực vật tự làm thức ăn bằng ánh sáng mặt trời, nước và khí carbon dioxide."
+          },
+          {
+            "tr": "lục lạp",
+            "term": "chloroplast",
+            "definition": "Bộ phận bên trong tế bào thực vật nơi xảy ra quang hợp."
           },
           {
             "tr": "diệp lục",
             "term": "chlorophyll",
-            "definition": "Chất làm lục lạp màu xanh và bắt năng lượng từ ánh sáng mặt trời."
+            "definition": "Chất xanh trong lục lạp giúp hấp thụ ánh sáng mặt trời."
           },
           {
             "tr": "khí carbon dioxide",
             "term": "carbon dioxide",
-            "definition": "Một thành phần trong không khí dùng để tạo thức ăn."
+            "definition": "Khí trong không khí mà thực vật dùng trong quá trình quang hợp."
           },
           {
             "tr": "glucose",
             "term": "glucose",
-            "definition": "Một loại đường dùng làm thức ăn cho cây."
+            "definition": "Một loại đường mà thực vật tạo ra và dùng làm thức ăn."
           },
           {
             "tr": "oxy",
             "term": "oxygen",
-            "definition": "Khí mà cây thải ra, chúng ta hít vào để thở."
+            "definition": "Khí được thực vật thải ra trong quá trình quang hợp, chúng ta hít vào để thở."
           },
           {
             "tr": "ATP",
             "term": "ATP",
-            "definition": "Một phân tử lưu trữ năng lượng ánh sáng và hoạt động như một cục pin nhỏ."
+            "definition": "Phân tử lưu trữ năng lượng từ ánh sáng mặt trời để dùng trong việc tạo glucose."
           },
           {
-            "tr": "chu trình Calvin",
+            "tr": "vòng Calvin",
             "term": "Calvin cycle",
-            "definition": "Quá trình dùng ATP để biến khí carbon dioxide thành glucose."
+            "definition": "Chuỗi các bước dùng ATP để chuyển khí carbon dioxide thành glucose."
           }
         ],
         "checkQuestions": [
           {
-            "q": "Chức năng của diệp lục là gì?",
-            "answer": "Nó bắt năng lượng trong ánh sáng mặt trời."
+            "q": "Mục đích chính của quang hợp là gì?",
+            "answer": "Tạo thức ăn (glucose) cho thực vật bằng ánh sáng mặt trời."
           },
           {
-            "q": "Nước vào tế bào cây như thế nào?",
-            "answer": "Nó đi vào qua màng tế bào."
+            "q": "Thực vật lấy khí carbon dioxide từ đâu?",
+            "answer": "Từ không khí."
           },
           {
-            "q": "Chu trình Calvin dùng gì để biến khí carbon dioxide thành glucose?",
-            "answer": "Nó dùng ATP."
+            "q": "Khí nào được thải ra như một sản phẩm phụ của quang hợp?",
+            "answer": "Oxy."
+          }
+        ]
+      },
+      "zh-Hans": {
+        "summary": [
+          "光合作用是植物利用阳光制造自己食物的过程。",
+          "叶子中的叶绿体含有叶绿素，能吸收阳光。",
+          "水通过细胞膜进入，二氧化碳来自空气。",
+          "植物利用阳光的能量制造ATP，ATP为卡尔文循环提供动力，从而生成葡萄糖。",
+          "光合作用会释放氧气作为副产品。"
+        ],
+        "keyTerms": [
+          {
+            "tr": "光合作用",
+            "term": "photosynthesis",
+            "definition": "植物利用阳光、水和二氧化碳制造自身食物的过程。"
+          },
+          {
+            "tr": "叶绿体",
+            "term": "chloroplast",
+            "definition": "植物细胞内发生光合作用的部分。"
+          },
+          {
+            "tr": "叶绿素",
+            "term": "chlorophyll",
+            "definition": "叶绿体中捕捉阳光的绿色物质。"
+          },
+          {
+            "tr": "二氧化碳",
+            "term": "carbon dioxide",
+            "definition": "植物在光合作用中使用的空气中的气体。"
+          },
+          {
+            "tr": "葡萄糖",
+            "term": "glucose",
+            "definition": "植物制造并用作食物的糖。"
+          },
+          {
+            "tr": "氧气",
+            "term": "oxygen",
+            "definition": "植物在光合作用中释放的气体，我们呼吸用。"
+          },
+          {
+            "tr": "三磷酸腺苷",
+            "term": "ATP",
+            "definition": "储存阳光能量的分子，用于制造葡萄糖。"
+          },
+          {
+            "tr": "卡尔文循环",
+            "term": "Calvin cycle",
+            "definition": "一系列步骤，利用ATP将二氧化碳转化为葡萄糖。"
+          }
+        ],
+        "checkQuestions": [
+          {
+            "q": "光合作用的主要目的是什么？",
+            "answer": "利用阳光为植物制造食物（葡萄糖）。"
+          },
+          {
+            "q": "植物从哪里获取二氧化碳？",
+            "answer": "从空气中。"
+          },
+          {
+            "q": "光合作用的副产品是什么？",
+            "answer": "氧气。"
           }
         ]
       }
