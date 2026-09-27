@@ -278,7 +278,7 @@ Teachers of newcomers deliberately leave "wait time", and the recording uses a 2
 Rather than asking the teacher (you) to sign up for an uptime service, the server pings its own public health check every 10 minutes, which Render counts as a visit. It uses `RENDER_EXTERNAL_URL`, which Render sets automatically, so it needs no configuration and does nothing locally. We considered an n8n workflow (a sponsor perk) and a GitHub Actions schedule. n8n needs an extra account, and GitHub's scheduled runs can be late and would use up the private repo's free minutes. Neither adds anything over the self-ping for this job.
 
 **The student interface speaks the student's language.**
-Every button and message on the phone ("I'm lost", "Slower, please", "Ask", the recap headings) is shown in all 12 languages. `scripts/translate-ui.mts` translated the 58 strings once with Gemma, giving it a note on what each button is for ("I'm lost" should be calm and first-person, not alarming). It checked every key and placeholder, and the files are committed in `src/i18n/strings`. A unit test fails if any language is missing a string. We reviewed the key buttons by hand and fixed one: the Tagalog "Slower" came back as two options, one of which meant "turn the volume down". The settings sheet says the interface was translated by AI.
+Every button and message on the phone ("I'm lost", "Slower, please", "Ask", the recap headings) is shown in all 12 languages (13 once Hindi was added, see below). `scripts/translate-ui.mts` translated the 58 strings once with Gemma, giving it a note on what each button is for ("I'm lost" should be calm and first-person, not alarming). It checked every key and placeholder, and the files are committed in `src/i18n/strings`. A unit test fails if any language is missing a string. We reviewed the key buttons by hand and fixed one: the Tagalog "Slower" came back as two options, one of which meant "turn the volume down". The settings sheet says the interface was translated by AI.
 Rejected: English-only buttons. A newcomer may not be able to read "I'm lost".
 
 **Arabic and Dari get a mirrored screen,** not just right-to-left text. The header, buttons and reading order flip, and English lines keep their own direction.
@@ -381,3 +381,15 @@ Everything below was run against the live site, https://aulaapp.xyz, after deplo
 **The real-AI test lessons** (`e2e/real-ai.spec.ts`, four sentences 5 seconds apart, three runs on fresh servers, median per run): Spanish 1.3 to 1.8s and Arabic 2.3 to 2.8s; in the room with a Somali reader, Somali 2.8 to 3.3s (it was 4.8s in production before, and Spanish there no longer waits for the slower model).
 
 **The honest limit.** Five languages including Somali, with a teacher who never pauses, is more work than one Featherless account can do: each line arrives about 13 seconds after the teacher finishes it. Real lessons have pauses, and most rooms have fewer languages. A faster provider would remove the limit (the AI client is OpenAI-compatible, so it's a configuration change), but that is a choice for after the hackathon.
+
+---
+
+## Hindi (Sep 27)
+
+**Hindi is the 13th student language.** It wasn't in the original list, which came from the brief, and there was no technical reason to leave it out. Hindi speakers are a large group, so we added it.
+
+**It is translated by the stronger model, but without a "beta" badge.** On five classroom sentences, Qwen needed 335 tokens for Hindi against 99 for Spanish, because its tokenizer splits Devanagari into many small pieces. Gemma needed 107. Even at half the speed per token, Gemma finished the Hindi in 6 seconds against Qwen's 11, and its grammar was correct where Qwen made mistakes. Quality is good, so there is no beta badge: a new `strongModel` flag on the language sends it to Gemma. In a real test lesson, Hindi captions, definitions (standard textbook terms such as केंद्रक for nucleus) and the recap all came out right.
+
+**The cost:** Hindi readers get their own call, like Somali, so a room with Hindi uses more of the shared AI pipe. With Spanish, Arabic and Hindi and a teacher talking non-stop, lines arrived 5.5 to 7.6 seconds after the teacher finished them (all 23 lines translated), against about 3.5 seconds for Spanish, Chinese and Arabic.
+
+**Interface and fonts.** The 58 interface strings were translated into Hindi with the same script as the other languages (everyday words students use, like "टीचर" and "क्लास"). Noto Sans Devanagari loads only on pages that show Hindi.
