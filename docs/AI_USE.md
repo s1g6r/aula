@@ -49,10 +49,23 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the landing page, projector mode, text size and dark mode, My words, the translation flag, the 12-language student interface (translated once by Gemma, then spot-checked), the mirrored Arabic/Dari layout, icons and share image, the accessibility fixes found by the axe audit, and the font change that sped up first paint.
 - **I decided / changed:** _(fill in)_
 
+### P9: Verified in production (Sep 27)
+- **Claude Code did:** ran the end-to-end tests and Lighthouse against the live site, and found and fixed a time-zone bug that made the server and browsers print different dates.
+- **I decided / changed:** _(fill in)_
+
 ### Latency pass (Sep 27)
 - **What prompted it:** people testing Aula told me translations took about a minute and the recap about 2 minutes, long enough for a student to get lost or leave.
 - **Claude Code did:** wrote a script that times a realistic lesson end to end, measured how Featherless handles our requests (one at a time for the whole account, about 33 tokens a second), found the causes, and changed the pipeline: long speech is sent in pieces, slower-model languages get their own queue, recaps go before definitions and are translated summary-first, replies are cut off once their JSON is complete, and a language that doesn't arrive gets one retry. It also found and fixed a bug that could drop a recap. Before and after numbers are in `DECISIONS.md`.
 - **I decided / changed:** _(fill in)_
+
+### Hindi, the microphone and security (Sep 27)
+- **What prompted it:** I asked for Hindi, a large group the original list left out; testers had trouble with the microphone in Chrome and on an iPhone; and a friend's university network blocked the site as "dangerous".
+- **Claude Code did:** measured Hindi on both models and routed it to the one that used a third of the tokens; translated the interface into Hindi; tried to reproduce the Chrome microphone problem in seven scenarios with a real microphone (it couldn't), made the level meter stop using the speakers, and added a details line to microphone errors; used that line to find the iPhone problem (speech recognition switched off, not the microphone) and wrote the right message for it; checked that Google has no warning on the site, explained the new-domain block, and added security headers and a backup address. While capturing screenshots it found the fast model leaving English words inside some translations (including in the Demo Replay) and fixed it by giving the model the glossary's word for each key term.
+- **I decided / changed:** _(fill in)_
+
+### P10: Documentation and submission drafts (Sep 27)
+- **Claude Code generated:** the README, ARCHITECTURE (with diagrams), EXPLAIN (15 judge questions), DEMO_SCRIPT (a captions-only video), the Devpost draft, the screenshots and the Demo Replay GIF (`scripts/capture-media.mts`).
+- **I decided / changed:** _(fill in: rewrite DEVPOST.md in your own words before submitting)_
 
 ---
 

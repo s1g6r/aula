@@ -418,3 +418,13 @@ Everything below was run against the live site, https://aulaapp.xyz, after deplo
 - **A backup address and recategorization steps** are in `docs/DEPLOY.md`. The Render address (`aula-u9nw.onrender.com`) is the same app on an established domain, and join links follow whichever address the teacher used.
 
 **A phone problem found in the same test:** the teacher screen on an iPhone showed "Microphone blocked, click the icon in the address bar". The new details line showed the real error, `service-not-allowed`. In Safari that means speech recognition itself is switched off (it relies on Dictation, and Safari needs Speech Recognition permission), not the microphone. That error now has its own message with the exact Settings path for iPhone, iPad or Mac. The status line also names the right company for each browser: Apple for Safari, Google for Chrome, Microsoft for Edge. It used to say "Google" everywhere.
+
+---
+
+## Key terms use the glossary's word (Sep 27)
+
+**What we found:** capturing screenshots for the README showed two translation slips from the fast model: "una batería *tiny*" in Spanish, and a garbled "ال fotosynthesis" in Arabic. The Arabic one was also in the Demo Replay. Both came back every time for the same sentence. Adding a rule to the prompt ("write every translation entirely in that language") changed nothing.
+
+**The fix:** each language already has a glossary with the textbook translation of every key term, but the live prompt never told the model about it. Now every call lists the glossary's word for each key term the line mentions ("ar: photosynthesis = التمثيل الضوئي"). On the 17 demo sentences in Spanish, Arabic and Vietnamese: 0 of 51 lines had a stray or garbled word (about 2 per run before), and the glossary's word was used for 56 of 57 key-term mentions. That also makes phone highlighting line up, because phones highlight the glossary's word. The replay recorder now waits for every language's definitions before the lesson starts, the way a class settles in before the teacher begins.
+
+**One AI key is shared by everything.** The live site and a local copy use the same Featherless key, and the key processes one request at a time. While testers were using the live site, three local recordings each hit a 16 to 24 second stretch with no reply. So benchmarks and replay recordings should run when the live site is quiet, and more simultaneous classrooms need more keys or a faster provider.
