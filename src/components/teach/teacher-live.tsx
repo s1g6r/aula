@@ -194,6 +194,7 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
                 status={speech.status}
                 mode={speech.mode}
                 error={speech.error}
+                detail={speech.detail}
                 onStart={speech.start}
                 onStop={speech.stop}
                 devices={speech.devices}
@@ -360,6 +361,7 @@ type MicControlProps = {
   status: SpeechStatus;
   mode: "on-device" | "cloud" | null;
   error: string | null;
+  detail: string | null;
   onStart: () => void;
   onStop: () => void;
   devices: MicDevice[];
@@ -369,7 +371,7 @@ type MicControlProps = {
 };
 
 function MicControl(props: MicControlProps) {
-  const { status, mode, error, devices, deviceId, level } = props;
+  const { status, mode, error, detail, devices, deviceId, level } = props;
   // "default" duplicates one of the real devices; show it as "System default".
   const choices = devices.filter((d) => d.id !== "default");
   const on = status === "listening" || status === "starting";
@@ -398,6 +400,7 @@ function MicControl(props: MicControlProps) {
           )}
         </p>
         {error && <p className="mt-0.5 text-ink-2">{error}</p>}
+        {error && detail && <p className="mt-0.5 text-xs text-ink-3">Details: {detail}</p>}
       </div>
       {on && <LevelMeter level={level} />}
       <div className="flex w-full items-center gap-2 text-sm">

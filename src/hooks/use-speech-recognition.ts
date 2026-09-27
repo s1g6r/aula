@@ -31,11 +31,38 @@ const BLOCKED_MESSAGE = "Your browser isn't allowed to use the microphone. Click
 const STUCK_MESSAGE =
   "Your browser can't reach the microphone. Pick another microphone below. If that doesn't help, fully quit your browser and open it again (on a Mac: Cmd+Q), which resets its audio. Or type below.";
 
+// The level meter only analyses the mic. In Chrome an AudioContext also opens
+// the speakers by default, and with Bluetooth headphones that's one more
+// device switch that can go wrong, so we ask for no audio output where the
+// browser supports it.
+function analysisContext(): AudioContext {
+  try {
+    return new AudioContext({ sinkId: { type: "none" } } as AudioContextOptions);
+  } catch {
+    return new AudioContext();
+  }
+}
+
+// "Chrome 153", "Safari 26": for the details line under a mic error.
+function browserName(): string {
+  const ua = navigator.userAgent;
+  const m = ua.match(/(Edg|OPR|Chrome|Firefox)\/(\d+)/) ?? ua.match(/Version\/(\d+).*Safari/);
+  if (!m) return "unknown browser";
+  return m.length === 3 ? `${{ Edg: "Edge", OPR: "Opera" }[m[1]] ?? m[1]} ${m[2]}` : `Safari ${m[1]}`;
+}
+
 export function useSpeechRecognition(opts: { onInterim: (text: string) => void; onFinal: (text: string, startedAt: Date) => void; lang?: string }) {
   const [status, setStatus] = useState<SpeechStatus>("idle");
   const [mode, setMode] = useState<"on-device" | "cloud" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A short technical note on what failed, shown under the error so a
+  // teacher can pass it on ("the mic didn't open within 8s").
+  const [detail, setDetail] = useState<string | null>(null);
   const [devices, setDevices] = useState<MicDevice[]>([]);
+  const devicesRef = useRef<MicDevice[]>([]);
+  useEffect(() => {
+    devicesRef.current = devices;
+  }, [devices]);
   const [deviceId, setDeviceIdState] = useState<string>("");
   const [level, setLevel] = useState(0);
 
@@ -118,6 +145,8 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
   const openMic = useCallback(
     async (id: string): Promise<MediaStreamTrack | "timeout" | null> => {
       stopStream();
+      const micName = devicesRef.current.find((d) => d.id === id)?.label ?? "system default";
+      const note = (what: string) => setDetail(`${browserName()}, ${micName}: ${what}`);
       // If the browser is about to ask "allow the microphone?", wait for the
       // teacher to answer instead of timing out.
       let permission: string = "unknown";
@@ -130,6 +159,7 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
         wantOn.current = false;
         setStatus("blocked");
         setError(BLOCKED_MESSAGE);
+        note("permission denied in site settings");
         return null;
       }
       if (permission === "prompt") setError("Your browser will ask to use the microphone. Choose Allow.");
@@ -146,7 +176,11 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
       } catch (err) {
         const name = (err as DOMException).name;
         void refreshDevices();
-        if (name === "TimeoutError") return "timeout";
+        if (name === "TimeoutError") {
+          note(`the mic didn't open within ${permission === "prompt" ? 60 : 8}s (permission: ${permission}); tried the browser's default mic instead`);
+          return "timeout";
+        }
+        note(`opening the mic failed: ${name}${(err as Error).message ? ` (${(err as Error).message})` : ""}`);
         wantOn.current = false;
         if (name === "NotAllowedError" || name === "SecurityError") {
           setStatus("blocked");
@@ -177,7 +211,7 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
 
       // Live input level (0..1), updated about 10 times a second.
       try {
-        const ctx = new AudioContext();
+        const ctx = analysisContext();
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 512;
         ctx.createMediaStreamSource(stream).connect(analyser);
@@ -231,6 +265,7 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
       chunker.reset(); // each session numbers its results from zero
       setStatus("listening");
       setError(null);
+      setDetail(null);
     };
     rec.onresult = (e) => {
       let interim = "";
@@ -262,6 +297,8 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
         forceCloud.current = true;
         return;
       }
+      const what = `speech recognition error "${e.error}" (${local ? "on-device" : "Google speech service"}, ${streamRef.current ? "the chosen mic" : "the browser's default mic"})`;
+      setDetail((d) => (d ? `${d}; then ${what}` : `${browserName()}: ${what}`));
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         wantOn.current = false;
         setStatus("blocked");
@@ -325,6 +362,7 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     wantOn.current = true;
     restarts.current = [];
     setError(null);
+    setDetail(null);
     setStatus("starting");
     const track = await openMic(deviceId);
     if (!track) return;
@@ -368,5 +406,5 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     [openMic],
   );
 
-  return { status, mode, error, start, stop, devices, deviceId, setDeviceId, level };
+  return { status, mode, error, detail, start, stop, devices, deviceId, setDeviceId, level };
 }
