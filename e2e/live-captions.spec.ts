@@ -6,6 +6,7 @@ import { captions, joinAsStudent, say, startGuestLesson } from "./helpers";
 // nothing, and ending the lesson reaches the student.
 
 test("teacher speech reaches a student's phone, survives a Wi-Fi drop, and ends cleanly", async ({ browser }) => {
+  test.setTimeout(90_000); // includes a deliberate 10s outage; production is slower than local
   const { page: teacher, code } = await startGuestLesson(browser);
   const student = await joinAsStudent(browser, code, "Ana", /^Español$/);
 
