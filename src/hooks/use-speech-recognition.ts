@@ -24,6 +24,9 @@ export type SpeechStatus = "unsupported" | "idle" | "starting" | "listening" | "
 export type MicDevice = { id: string; label: string };
 
 const MIC_KEY = "aula:mic";
+const BLOCKED_MESSAGE = "Your browser isn't allowed to use the microphone. Click the microphone icon in the address bar (or the site settings) and choose Allow, or type below.";
+const STUCK_MESSAGE =
+  "Your browser can't reach the microphone. Pick another microphone below. If that doesn't help, fully quit your browser and open it again (on a Mac: Cmd+Q), which resets its audio. Or type below.";
 
 export function useSpeechRecognition(opts: { onInterim: (text: string) => void; onFinal: (text: string, startedAt: Date) => void; lang?: string }) {
   const [status, setStatus] = useState<SpeechStatus>("idle");
@@ -106,33 +109,45 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
   }
 
   // Opens the chosen mic, or explains why it can't. Never waits forever:
-  // Bluetooth headphones can leave the request hanging while macOS tries to
-  // switch them into headset mode.
+  // Bluetooth headphones, or a browser whose audio service got stuck, can
+  // leave the request hanging. Returns "timeout" in that case so start() can
+  // try the speech engine's own default microphone instead.
   const openMic = useCallback(
-    async (id: string): Promise<MediaStreamTrack | null> => {
+    async (id: string): Promise<MediaStreamTrack | "timeout" | null> => {
       stopStream();
+      // If the browser is about to ask "allow the microphone?", wait for the
+      // teacher to answer instead of timing out.
+      let permission: string = "unknown";
+      try {
+        permission = (await navigator.permissions.query({ name: "microphone" as PermissionName })).state;
+      } catch {
+        permission = "unknown";
+      }
+      if (permission === "denied") {
+        wantOn.current = false;
+        setStatus("blocked");
+        setError(BLOCKED_MESSAGE);
+        return null;
+      }
+      if (permission === "prompt") setError("Your browser will ask to use the microphone. Choose Allow.");
       let stream: MediaStream;
       try {
         const request = navigator.mediaDevices.getUserMedia({ audio: id ? { deviceId: { exact: id } } : true });
         let timer: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new DOMException("microphone did not respond", "TimeoutError")), 8000);
+          timer = setTimeout(() => reject(new DOMException("microphone did not respond", "TimeoutError")), permission === "prompt" ? 60_000 : 8000);
         });
         // If it answers after we gave up, release it.
         request.then((late) => wantOn.current || late.getTracks().forEach((t) => t.stop())).catch(() => {});
         stream = await Promise.race([request, timeout]).finally(() => clearTimeout(timer));
       } catch (err) {
         const name = (err as DOMException).name;
-        wantOn.current = false;
         void refreshDevices();
-        if (name === "TimeoutError") {
-          setStatus("no-mic");
-          setError(
-            "The microphone isn't responding. If Chrome is showing a permission prompt, allow it. With Bluetooth headphones like AirPods, pick your computer's built-in microphone below instead.",
-          );
-        } else if (name === "NotAllowedError" || name === "SecurityError") {
+        if (name === "TimeoutError") return "timeout";
+        wantOn.current = false;
+        if (name === "NotAllowedError" || name === "SecurityError") {
           setStatus("blocked");
-          setError("Chrome isn't allowed to use the microphone. Click the mic icon in the address bar and choose Allow, or type below.");
+          setError(BLOCKED_MESSAGE);
         } else if (name === "NotFoundError") {
           setStatus("no-mic");
           setError("No microphone found. Plug one in, or type below.");
@@ -238,11 +253,11 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         wantOn.current = false;
         setStatus("blocked");
-        setError("Chrome isn't allowed to use the microphone. Click the mic icon in the address bar and choose Allow, or type below.");
+        setError(BLOCKED_MESSAGE);
       } else if (e.error === "audio-capture") {
         wantOn.current = false;
         setStatus("no-mic");
-        setError("Chrome can't hear that microphone. Pick another one below, or type instead.");
+        setError(STUCK_MESSAGE);
       } else if (e.error === "network") {
         setError("Speech recognition lost its connection. Retrying...");
       } else {
@@ -301,6 +316,12 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
     setStatus("starting");
     const track = await openMic(deviceId);
     if (!track) return;
+    if (track === "timeout") {
+      // Opening the mic ourselves hung. Let the speech engine try its own
+      // default microphone; if that fails too, its error explains what to do.
+      stopStream();
+      setError("That microphone didn't respond, so we're trying your browser's default microphone...");
+    }
     await begin();
      
   }, [deviceId, openMic]);
