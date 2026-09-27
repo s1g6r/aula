@@ -298,3 +298,30 @@ Lighthouse gives accessibility 100 on every main screen.
 **"My words" stays on the phone.** Saved words live in the browser's local storage, never on our server, so there's no account and nothing to delete.
 
 **Students can flag a wrong translation.** A small flag under each translated line. The teacher's review lists the flagged lines. For the beta languages especially, admitting the AI can be wrong is part of the design.
+
+---
+
+## P9: Verified in production (Sep 27)
+
+Everything below was run against the live site, https://aulaapp.xyz, after deploying.
+
+**End-to-end tests (Playwright), 9 of 9 passed:** live captions from teacher to phone, the 10-second Wi-Fi drop with nothing lost, the Arabic right-to-left layout, "I'm lost" and "Slower" counts anchored to the right sentence, a Spanish question reaching the teacher in English and being marked answered, the profanity filter and mute, the Demo Replay story, the accessibility audit of every screen, and two real-AI lessons.
+
+**Real translation speed in production** (teacher's screen to phone, four sentences, median):
+
+| Room | Model | 1st language | 2nd language |
+|---|---|---|---|
+| Spanish + Arabic | Qwen3 30B | 1.8s | 2.3s |
+| Spanish + Somali | Gemma 4 (routed) | 2.8s | 4.8s |
+
+**Lighthouse, simulated mid-range phone (slow 4G, 4x slower CPU):**
+
+| Screen | Performance | Accessibility | Best practices | SEO | Largest paint |
+|---|---|---|---|---|---|
+| Landing | 91 | 100 | 100 | 100 | 2.3s |
+| Demo Replay | 99 | 100 | 96, now fixed | 100 | 1.7s |
+| Join | 100 | 100 | 100 | 100 | 1.4s |
+| Student phone | 99 | 100 | 100 | 100 | 1.7s |
+| Teacher screen | 100 | 100 | 100 | 100 | 1.4s |
+
+**The one issue found: a date that depended on the time zone.** The demo's "recorded on" date was formatted in each machine's own time zone. Render's server runs on UTC and the recording finished just after midnight UTC, so the server printed September 27 while browsers in the US printed September 26. React reported a hydration mismatch, which cost the demo 4 best-practice points. All dates are now formatted in one fixed time zone (US Eastern). A test covers it, and a local run with the server on UTC and a browser in Los Angeles shows no console errors.
