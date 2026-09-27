@@ -1,7 +1,8 @@
-// The 12 launch languages. `code` is a BCP 47 tag used for the `lang`
-// attribute on every translated line, so browsers pick the right fonts and
-// screen readers the right voice. `promptName` is what we tell the model,
-// chosen for the variant most US newcomer students actually speak.
+// The 13 student languages (the brief's 12, plus Hindi). `code` is a BCP 47
+// tag used for the `lang` attribute on every translated line, so browsers
+// pick the right fonts and screen readers the right voice. `promptName` is
+// what we tell the model, chosen for the variant most US newcomer students
+// actually speak.
 
 export type LanguageCode =
   | "es"
@@ -9,6 +10,7 @@ export type LanguageCode =
   | "zh-Hans"
   | "vi"
   | "pt"
+  | "hi"
   | "ht"
   | "uk"
   | "ru"
@@ -26,6 +28,11 @@ export type Language = {
   // Lower-resource languages where model quality is noticeably weaker.
   // Shown with a "beta" badge; students can flag bad lines.
   beta: boolean;
+  // Translated by the stronger model even though quality is fine: the fast
+  // model's tokenizer needs about 3 times the tokens for Hindi's script, which
+  // made it slower than the strong model (and less fluent). Beta languages
+  // always use the stronger model too.
+  strongModel?: boolean;
 };
 
 export const LANGUAGES: readonly Language[] = [
@@ -34,6 +41,7 @@ export const LANGUAGES: readonly Language[] = [
   { code: "zh-Hans", name: "Chinese (Simplified)", native: "简体中文", promptName: "Simplified Chinese (Mandarin)", dir: "ltr", beta: false },
   { code: "vi", name: "Vietnamese", native: "Tiếng Việt", promptName: "Vietnamese", dir: "ltr", beta: false },
   { code: "pt", name: "Portuguese", native: "Português", promptName: "Brazilian Portuguese", dir: "ltr", beta: false },
+  { code: "hi", name: "Hindi", native: "हिन्दी", promptName: "Hindi (everyday Hindi in Devanagari script)", dir: "ltr", beta: false, strongModel: true },
   { code: "ht", name: "Haitian Creole", native: "Kreyòl ayisyen", promptName: "Haitian Creole (Kreyòl ayisyen)", dir: "ltr", beta: true },
   { code: "uk", name: "Ukrainian", native: "Українська", promptName: "Ukrainian", dir: "ltr", beta: false },
   { code: "ru", name: "Russian", native: "Русский", promptName: "Russian", dir: "ltr", beta: false },

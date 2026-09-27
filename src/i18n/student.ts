@@ -3,6 +3,7 @@ import es from "./strings/es.json";
 import faAF from "./strings/fa-AF.json";
 import fil from "./strings/fil.json";
 import fr from "./strings/fr.json";
+import hi from "./strings/hi.json";
 import ht from "./strings/ht.json";
 import pt from "./strings/pt.json";
 import ru from "./strings/ru.json";
@@ -79,7 +80,7 @@ export const STUDENT_STRINGS_EN = {
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;
 
-const STRINGS: Record<string, Partial<StudentStrings>> = { es, ar, "zh-Hans": zhHans, vi, pt, ht, uk, ru, "fa-AF": faAF, so, fil, fr };
+const STRINGS: Record<string, Partial<StudentStrings>> = { es, ar, "zh-Hans": zhHans, vi, pt, hi, ht, uk, ru, "fa-AF": faAF, so, fil, fr };
 
 export function studentStrings(lang: string): StudentStrings {
   return { ...STUDENT_STRINGS_EN, ...STRINGS[lang] };

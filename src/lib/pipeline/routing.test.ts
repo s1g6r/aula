@@ -8,7 +8,7 @@ describe("pickModelFor", () => {
     expect(pickModelFor(["es", "ar", "zh-Hans", "vi"], models)).toEqual(models.fast);
   });
 
-  it.each(["so", "ht", "fa-AF"])("uses the stronger model when %s is in the call", (lang) => {
+  it.each(["so", "ht", "fa-AF", "hi"])("uses the stronger model when %s is in the call", (lang) => {
     expect(pickModelFor(["es", lang], models)).toEqual(models.quality);
   });
 });

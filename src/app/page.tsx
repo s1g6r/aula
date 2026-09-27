@@ -138,8 +138,8 @@ export default function Home() {
               Built for the students who need it most
             </h2>
             <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <Feature icon={<Captions aria-hidden />} title="Live captions, 12 languages">
-                One AI request per sentence covers every language in the room, and each language appears the moment it&rsquo;s ready.
+              <Feature icon={<Captions aria-hidden />} title="Live captions, 13 languages">
+                Each sentence is translated for every language in the room, and each language appears the moment it&rsquo;s ready.
               </Feature>
               <Feature icon={<BookOpen aria-hidden />} title="Key words that teach English">
                 The teacher&rsquo;s terms are highlighted. Tap one for a simple definition in your language and hear it in English. It&rsquo;s saved to My words.
