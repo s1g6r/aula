@@ -37,6 +37,10 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** `render.yaml`, the production start script, the hourly privacy clean-up, and `docs/DEPLOY.md`. I created the Render account and services, pasted the API key, and set up DNS and the uptime monitor myself.
 - **I decided / changed:** _(fill in)_
 
+### P6: Recap and review (Sep 26)
+- **Claude Code generated:** the recap prompt and pipeline, the "What you missed" page, the review page with the confusion timeline, and the tests. It found, from a real run, that Gemma sometimes returns the summary as one string, and fixed the validation to handle it.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula
@@ -47,5 +51,5 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 | Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | Gemma 4 26B | Only terms the teacher listed are kept. Runs at low priority so it never slows captions |
 | Speech-recognition repair | Inside the translation call, fixes obvious mishearings ("sell membrane" to "cell membrane") | same | The correction is shown next to what Chrome heard, never silently |
 | Student questions | Translates a student's question into English for the teacher | same routing as live translation | Told to translate only and never answer. The teacher answers. Profanity is checked on the original and the English. Only the teacher sees questions |
-| Recap | _(P6)_ | | |
+| Recap | When the lesson ends, writes a summary, key terms with definitions, and 3 check-yourself questions, then translates them for every student's language (and any other language on request) | Gemma 4 26B writes; Qwen3 30B or Gemma translate | Built only from the transcript. Told never to add facts or homework answers. Validated before saving. Labeled "Written by AI from what the teacher said" on the page |
 | Student questions | _(P4)_ | | |

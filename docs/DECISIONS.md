@@ -217,3 +217,25 @@ Testing against the live Render site (behind Cloudflare) confirmed that live cap
 - **The model "corrected" a sentence that wasn't wrong.** It rewrote "Plants take in carbon dioxide" as "Plants absorb carbon dioxide", and the app showed that as a repair of the teacher's words. Repairs are now accepted only if they restore one of the teacher's key terms ("sell membrane" to "cell membrane") and change at most 3 words, and the prompt now says to never rephrase.
 
 Measured in production, with a teacher and two phones, 4 sentences, real AI: Spanish 2.3s and Arabic 3.3s median (Qwen). In a room with a Somali reader (Gemma): Spanish 4.8s and Somali 8.3s median.
+
+---
+
+## P6: Recap, "What you missed" and review (Sep 26)
+
+**The recap is written only from the transcript.**
+When the teacher ends the lesson, Gemma writes 3 to 5 summary sentences, up to 8 key terms with definitions based on how the teacher explained them, and exactly 3 check-yourself questions with answers. The prompt forbids adding facts, topics or homework answers that weren't in the lesson. The recap is validated like every AI output: if it's malformed twice, the lesson shows "couldn't write the recap" with a "Try again" button, never a half-broken page.
+
+**Translated for every language that was in the room, and on demand for everyone else.**
+After the English recap, it's translated into each language students used during the lesson (Qwen, or Gemma for the beta languages). Anyone opening the "What you missed" link in another language gets it translated then and there, and the page checks back every 3 seconds until it's ready. Opening new languages is rate-limited, since each one costs an AI call. Key terms keep their English form next to the translation, so the recap still teaches the English words.
+
+**Recaps are background work that yields to live captions.**
+Recap calls run at the lowest priority and are pre-empted by any live caption in any classroom. A pre-empted recap simply tries again.
+
+**Normalize, don't reject, a good recap with the wrong shape.**
+In testing, Gemma returned a correct four-sentence summary as a single string, and strict validation threw the whole recap away. The prompt now shows the exact shape, and the validator splits a single multi-sentence summary into sentences. A one-sentence summary is still rejected.
+
+**A public link, private everything else.**
+`/r/<id>` needs no login, so an absent student can open it from a text message. The id is an unguessable cuid2. The page shows the recap and the transcript, never nicknames, questions or signals. Those stay on the teacher's review page.
+
+**The review page turns signals into "what to re-teach".**
+A timeline shows every sentence as a tick, with a coral bar wherever students tapped "I'm lost" (one color, since it's one series; a hover label on each bar; and a table view for screen readers). Below it, "Worth re-teaching tomorrow" lists the three sentences where the most students got lost. The page also shows the questions, the recap with a copy-link button, the median translation speed, and a two-step delete.
