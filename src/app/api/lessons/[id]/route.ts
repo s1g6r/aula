@@ -11,6 +11,8 @@ export async function DELETE(_request: Request, ctx: RouteContext<"/api/lessons/
   const { id } = await ctx.params;
   const access = await requireTeacherLesson(id);
   if ("error" in access) return access.error;
+  const row = await db.lesson.findUnique({ where: { id }, select: { isReplay: true } });
+  if (row?.isReplay) return Response.json({ error: "The demo lesson can't be deleted" }, { status: 403 });
   bus.publish(id, "lesson-ended", {});
   await db.lesson.delete({ where: { id } });
   forgetLesson(id);
