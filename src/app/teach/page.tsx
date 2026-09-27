@@ -56,7 +56,7 @@ export default async function TeachPage() {
             <ul className="mt-4 divide-y rounded-2xl border bg-card">
               {lessons.map((l) => (
                 <li key={l.id}>
-                  <Link href={`/teach/${l.id}`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-secondary/60">
+                  <Link href={l.status === "LIVE" ? `/teach/${l.id}` : `/teach/${l.id}/review`} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-secondary/60">
                     <div className="min-w-0">
                       <p className="truncate font-medium">{l.title || "Untitled lesson"}</p>
                       <p className="text-sm text-ink-2">
@@ -68,7 +68,7 @@ export default async function TeachPage() {
                     {l.status === "LIVE" ? (
                       <span className="shrink-0 rounded-full bg-sage/10 px-2.5 py-1 text-xs font-semibold text-sage">Live · {l.code}</span>
                     ) : (
-                      <span className="shrink-0 text-xs text-ink-2">Ended</span>
+                      <span className="shrink-0 text-xs text-ink-2">Review</span>
                     )}
                   </Link>
                 </li>
