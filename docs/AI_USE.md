@@ -41,6 +41,10 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the recap prompt and pipeline, the "What you missed" page, the review page with the confusion timeline, and the tests. It found, from a real run, that Gemma sometimes returns the summary as one string, and fixed the validation to handle it.
 - **I decided / changed:** _(fill in)_
 
+### P7: Demo Replay (Sep 26)
+- **Claude Code generated:** the scripted lesson, the recording script, the replay engine and player, and the narration. It also found, from the first recording, that four languages at speaking pace outran the model, and it redesigned the reply format to fix that.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula

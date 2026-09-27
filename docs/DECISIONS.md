@@ -239,3 +239,33 @@ In testing, Gemma returned a correct four-sentence summary as a single string, a
 
 **The review page turns signals into "what to re-teach".**
 A timeline shows every sentence as a tick, with a coral bar wherever students tapped "I'm lost" (one color, since it's one series; a hover label on each bar; and a table view for screen readers). Below it, "Worth re-teaching tomorrow" lists the three sentences where the most students got lost. The page also shows the questions, the recap with a copy-link button, the median translation speed, and a two-step delete.
+
+---
+
+## P7: Demo Replay (Sep 26)
+
+**Record a real lesson through the real app, then replay the recording.**
+`scripts/generate-replay.mts` drives the running app with Playwright, just like real people. A guest teacher starts a 9th-grade Photosynthesis lesson and types 17 sentences at speaking pace. Four students join in Spanish, Arabic, Vietnamese and Chinese. Three tap "I'm lost" at the hardest sentence, one asks "¿Para qué necesita la planta el ATP?", and the teacher ends the lesson. Then it reads back everything the pipeline produced (translations with their measured delays, definitions, the speech-recognition repair, signals, the question and the recap in four languages) and writes `src/demo/replay.json`, which is committed.
+Rejected: hand-written demo data. It would be faster to make but dishonest, and it wouldn't prove the pipeline works.
+
+**The Demo Replay page has no dependencies.**
+`/demo` imports the recording at build time. No database, no AI and no login, so it works on the slowest cold start and even after the free database expires.
+
+**One pure function drives the replay.**
+`src/demo/replay-engine.ts` answers "what did each screen show at time t?". Play, pause, 2x, "jump to the lost moment", scrubbing and switching the phone's language are all the same call with a different t or language. The screens are the product's real components (captions, term card, transcript, pulse, questions, recap), not a mock-up.
+
+**It explains itself.**
+A narration line above the screens says what's happening ("Students tap 'I'm lost'. The teacher sees how many, never who, and exactly which sentence lost them."), so a judge who clicks cold understands it in under two minutes without a voiceover.
+
+**Honest labeling.**
+The page says it's a replay of a lesson processed by Aula's live pipeline, names the models, and says the delays are as measured, the teacher's sentences were typed at speaking pace, and the recap step is sped up.
+
+**Pacing: about 2 seconds between sentences.**
+Teachers of newcomers deliberately leave "wait time", and the recording uses a 2.2-second pause after each sentence.
+
+**What the first recording attempt found (and fixed):**
+- *Two caption calls per lesson were running, not one.* The `.env` template and the code default still said `LESSON_CONCURRENCY=2`, left over from the brief. The second call just waited behind the first and missed the chance to merge sentences. The default is now 1.
+- *Four languages at full speaking pace outran the model.* Each call took 8 to 15 seconds for four languages while sentences came every 5 or 6 seconds, so a backlog grew and two lines fell back to English. The fix was a leaner reply: each language is now a plain string instead of an object with a list of term positions, about a third fewer tokens. Phones find the key terms in the translation themselves, using each language's glossary (the standard textbook word). A nice side effect: highlights now appear on earlier lines as soon as the glossary arrives.
+- *A glossary chunk that came back malformed was never retried,* leaving Vietnamese with 6 of 9 definitions. Each chunk now gets one retry.
+- *The model repaired "sell membrane" silently.* All four translations correctly said "cell membrane", but the model didn't report the corrected English, so the English line still read "sell membrane". Relying on the model to report its own repairs failed twice in testing. Aula now also checks every sentence against the teacher's multi-word key terms, with no AI involved: if every word matches except one that's off by at most two letters ("sell"/"cell", "why"/"y", "Kelvin"/"Calvin"), it restores the key term the moment the sentence arrives, and translates the repaired sentence. Single-word terms are left alone because false alarms are too likely, and plurals don't count as mistakes. The model's own repairs are still accepted under the rules above.
+- *A re-recording picked up cached translations.* Recording the same lesson twice on one server served most translations from the in-memory cache in about 1ms, which would have made the replay's "measured delays" misleading. The recorder now warns and exits with an error if any translation arrived suspiciously fast, and the committed replay was recorded on a freshly started server.

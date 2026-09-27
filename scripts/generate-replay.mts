@@ -130,6 +130,14 @@ const replay = {
   },
 };
 writeFileSync("src/demo/replay.json", JSON.stringify(replay, null, 2) + "\n");
+// Guard: translations served from the in-memory cache (the same sentences
+// recorded twice on one server) land in ~0ms, which would misrepresent the
+// delays. Record on a freshly started server.
+const cached = replay.segments.flatMap((s) => langs.filter((l) => (s.translations[l]?.latencyMs ?? 999) < 100).map((l) => `#${s.seq}/${l}`));
+if (cached.length) {
+  console.error(`\nWARNING: ${cached.length} translations look cached (${cached.slice(0, 6).join(", ")}...). Restart the dev server and record again.`);
+  process.exitCode = 1;
+}
 const missing = replay.segments.flatMap((s) => langs.filter((l) => !s.translations[l]).map((l) => `#${s.seq}/${l}`));
 log(`wrote src/demo/replay.json: ${replay.segments.length} sentences, fix on #${replay.segments.find((s) => s.fixedText)?.seq ?? "none"}, missing translations: ${missing.join(", ") || "none"}, recap langs: ${Object.keys(replay.recap?.translations ?? {}).join(",")}`);
 await db.$disconnect();
