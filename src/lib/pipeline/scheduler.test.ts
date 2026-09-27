@@ -69,6 +69,49 @@ describe("AiScheduler", () => {
     expect(s.inUse).toBe(0);
   });
 
+  it("lets a nearly finished background job finish before the caption", async () => {
+    const s = new AiScheduler(4, 1, 1000);
+    const gate = deferred();
+    const glossary = s.run({ cost: 1, priority: 2, preemptible: true, expectedMs: 30 }, async () => {
+      await gate.promise;
+      return "glossary";
+    });
+    await tick();
+    const caption = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await tick();
+    gate.resolve();
+    await expect(glossary).resolves.toBe("glossary");
+    await expect(caption).resolves.toBe("caption");
+  });
+
+  it("cancels a nearly finished job that runs past its expected time", async () => {
+    const s = new AiScheduler(4, 1, 1000);
+    const glossary = s.run({ cost: 1, priority: 2, preemptible: true, expectedMs: 20 }, (signal) => new Promise((_r, reject) => signal.addEventListener("abort", () => reject(signal.reason))));
+    await tick();
+    const caption = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await expect(glossary).rejects.toBeInstanceOf(PreemptedError);
+    await expect(caption).resolves.toBe("caption");
+  });
+
+  it("cancels a job right away when most of it is still ahead", async () => {
+    const s = new AiScheduler(4, 1, 1000);
+    let abortedAfter = -1;
+    const started = Date.now();
+    const glossary = s.run({ cost: 1, priority: 2, preemptible: true, expectedMs: 5000 }, (signal) =>
+      new Promise((_r, reject) =>
+        signal.addEventListener("abort", () => {
+          abortedAfter = Date.now() - started;
+          reject(signal.reason);
+        }),
+      ),
+    );
+    await tick();
+    const caption = s.run({ cost: 1, priority: 0 }, async () => "caption");
+    await expect(glossary).rejects.toBeInstanceOf(PreemptedError);
+    await expect(caption).resolves.toBe("caption");
+    expect(abortedAfter).toBeLessThan(100);
+  });
+
   it("never cancels live captions or jobs that aren't marked preemptible", async () => {
     const s = new AiScheduler(4, 1);
     const gate = deferred();
@@ -108,5 +151,16 @@ describe("translation cache", () => {
   it("treats the same sentence with different punctuation or case as one entry", () => {
     expect(translationCacheKey("Any questions?", "es", "m")).toBe(translationCacheKey("any questions", "es", "m"));
     expect(translationCacheKey("Any questions?", "es", "m")).not.toBe(translationCacheKey("Any questions?", "ar", "m"));
+  });
+});
+
+describe("isPreempted", () => {
+  it("recognizes a PreemptedError from another copy of this module", async () => {
+    const { isPreempted } = await import("./scheduler");
+    const foreign = Object.assign(new Error("preempted by a more urgent AI call"), { name: "PreemptedError" });
+    expect(isPreempted(foreign)).toBe(true);
+    expect(isPreempted(new PreemptedError())).toBe(true);
+    expect(isPreempted(new Error("timeout"))).toBe(false);
+    expect(isPreempted(null)).toBe(false);
   });
 });
