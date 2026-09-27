@@ -37,6 +37,19 @@ export const STUDENT_STRINGS_EN = {
   questionAnswered: "Your teacher answered",
   tryAgainSoon: "Wait a moment before sending again.",
   sendFailed: "Couldn't send. Check your connection.",
+  recapWriting: "Writing your lesson recap...",
+  readRecap: "Read the recap",
+  recapFailed: "The recap couldn't be written this time.",
+  recapTitle: "What you missed",
+  whatWeLearned: "What we learned",
+  keyWords: "Key words",
+  checkYourself: "Check yourself",
+  showAnswer: "Show answer",
+  fullLesson: "The whole lesson",
+  aiNote: "Written by AI from what the teacher said. If something looks wrong, ask your teacher.",
+  translatingRecap: "Translating the recap into your language...",
+  recapNotTranslated: "The recap isn't ready in this language yet. Here it is in English.",
+  language: "Language",
 };
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;
