@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, BookOpen, Check, Globe, SlidersHorizontal, Volume2 } from "lucide-react";
+import { ArrowDown, BookMarked, BookOpen, Check, Flag, Globe, SlidersHorizontal, Trash2, Volume2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { changeLanguageAction } from "@/app/actions/join";
@@ -25,7 +25,10 @@ export type OpenTerm = { en: string; tr?: string };
 const PREFS_KEY = "aula:student";
 const WORDS_KEY = "aula:words";
 
-function readPrefs(): { bilingual?: boolean } {
+type Theme = "system" | "light" | "dark";
+const TEXT_SCALES = [0.85, 1, 1.2, 1.45];
+
+function readPrefs(): { bilingual?: boolean; scale?: number; theme?: Theme } {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY) ?? "{}");
   } catch {
@@ -48,6 +51,9 @@ export function StudentLive({ lesson, me }: Props) {
   const [captions, dispatch] = useReducer(reducer, { ...emptyCaptions, ended: lesson.status === "ENDED" });
   const [glossary, setGlossary] = useState<Glossary>({});
   const [bilingual, setBilingual] = useState(true);
+  const [scale, setScale] = useState(1);
+  const [theme, setTheme] = useState<Theme>("system");
+  const [flagged, setFlagged] = useState<Set<number>>(new Set());
   const [openTerm, setOpenTerm] = useState<OpenTerm | null>(null);
   const [questions, setQuestions] = useState<MyQuestion[]>([]);
   const [recap, setRecap] = useState<{ status: string; recapId: string | null }>({ status: "NONE", recapId: null });
@@ -58,7 +64,30 @@ export function StudentLive({ lesson, me }: Props) {
     const saved = readPrefs();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring a saved preference after hydration
     if (saved.bilingual === false) setBilingual(false);
+    if (saved.scale && TEXT_SCALES.includes(saved.scale)) setScale(saved.scale);
+    if (saved.theme) setTheme(saved.theme);
   }, []);
+
+  // Dark mode for the whole page, following the phone unless the student chose.
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const apply = () => root.classList.toggle("dark", theme === "dark" || (theme === "system" && media.matches));
+    apply();
+    media.addEventListener("change", apply);
+    return () => {
+      media.removeEventListener("change", apply);
+      root.classList.remove("dark");
+    };
+  }, [theme]);
+
+  const flag = useCallback(
+    async (seq: number) => {
+      setFlagged((f) => new Set(f).add(seq));
+      await fetch(`/api/lessons/${lesson.id}/flags`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seq }) }).catch(() => {});
+    },
+    [lesson.id],
+  );
 
   const addGlossary = useCallback((entries: { en: string; tr: string; gloss: string }[], replace = false) => {
     setGlossary((g) => {
@@ -93,7 +122,7 @@ export function StudentLive({ lesson, me }: Props) {
   // fresh snapshot in the new language).
   const status = useLessonStream(`/api/lessons/${lesson.id}/stream?role=student&lang=${encodeURIComponent(lang)}`, onEvent);
 
-  const [panel, setPanel] = useState<"lang" | "settings" | null>(null);
+  const [panel, setPanel] = useState<"lang" | "settings" | "words" | null>(null);
   const [, startTransition] = useTransition();
   const pickLanguage = (code: string) => {
     setPanel(null);
@@ -126,6 +155,13 @@ export function StudentLive({ lesson, me }: Props) {
             </span>
           </button>
           <button
+            onClick={() => setPanel("words")}
+            className="rounded-full border bg-card p-2 focus-visible:ring-3 focus-visible:ring-coral/40 focus-visible:outline-none"
+            aria-label={t.myWords}
+          >
+            <BookMarked className="size-4 text-ink-2" aria-hidden />
+          </button>
+          <button
             onClick={() => setPanel("settings")}
             className="rounded-full border bg-card p-2 focus-visible:ring-3 focus-visible:ring-coral/40 focus-visible:outline-none"
             aria-label={t.settings}
@@ -143,6 +179,9 @@ export function StudentLive({ lesson, me }: Props) {
         t={t}
         ended={captions.ended}
         bilingual={bilingual}
+        scale={scale}
+        flagged={flagged}
+        onFlag={flag}
         keyTerms={lesson.keyTerms}
         onTerm={setOpenTerm}
       />
@@ -197,9 +236,58 @@ export function StudentLive({ lesson, me }: Props) {
                 <span className="text-sm text-ink-2">{t.showEnglishHelp}</span>
               </span>
             </label>
+
+            <fieldset className="mt-4">
+              <legend className="mb-2 font-medium">{t.textSize}</legend>
+              <div className="grid grid-cols-4 gap-2">
+                {TEXT_SCALES.map((x, i) => (
+                  <button
+                    key={x}
+                    aria-pressed={scale === x}
+                    aria-label={`${t.textSize} ${i + 1}`}
+                    onClick={() => {
+                      setScale(x);
+                      writePrefs({ scale: x });
+                    }}
+                    className={cn("h-12 rounded-xl border font-semibold", scale === x ? "border-coral bg-coral-soft" : "bg-card")}
+                    style={{ fontSize: `${0.8 + i * 0.22}rem` }}
+                  >
+                    A
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="mt-4">
+              <legend className="mb-2 font-medium">{t.colors}</legend>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ["light", t.themeLight],
+                    ["dark", t.themeDark],
+                    ["system", t.themeSystem],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    aria-pressed={theme === value}
+                    onClick={() => {
+                      setTheme(value);
+                      writePrefs({ theme: value });
+                    }}
+                    className={cn("min-h-12 rounded-xl border px-2 text-sm font-medium", theme === value ? "border-coral bg-coral-soft" : "bg-card")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            {lang !== "en" && <p className="mt-5 text-xs text-ink-3">{t.aiInterface}</p>}
           </div>
         </SheetContent>
       </Sheet>
+
+      <MyWords open={panel === "words"} onOpenChange={(o) => setPanel(o ? "words" : null)} t={t} />
 
       {captions.ended && <RecapBar recap={recap} lang={lang} t={t} />}
 
@@ -231,6 +319,11 @@ export function StatusLine({ status, ended, t }: { status: StreamStatus; ended: 
 
 type CaptionsProps = {
   glossary: Glossary;
+  // Caption text size multiplier (student setting).
+  scale?: number;
+  // Lines this student flagged; omit onFlag to hide the flag button (demo).
+  flagged?: Set<number>;
+  onFlag?: (seq: number) => void;
   lines: CaptionLine[];
   interim: string;
   lang: string;
@@ -241,7 +334,7 @@ type CaptionsProps = {
   onTerm: (term: OpenTerm) => void;
 };
 
-export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, onTerm, glossary }: CaptionsProps) {
+export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, onTerm, glossary, scale = 1, flagged, onFlag }: CaptionsProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const language = getLanguage(lang);
@@ -272,6 +365,7 @@ export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, 
           setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
         }}
         className="h-full overflow-y-auto px-4 pt-4 pb-8"
+        style={{ "--caption-scale": scale } as React.CSSProperties}
       >
         {lines.length === 0 && !interim ? (
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
@@ -296,6 +390,8 @@ export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, 
                 keyTerms={keyTerms}
                 onTerm={onTerm}
                 glossary={glossary}
+                flagged={flagged?.has(line.seq) ?? false}
+                onFlag={onFlag}
               />
             ))}
           </ol>
@@ -303,7 +399,7 @@ export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, 
         {interim && !ended && (
           <div className="mx-auto mt-5 max-w-2xl border-s-2 border-ink-3/40 ps-3" aria-hidden>
             <p className="text-xs text-ink-3">{t.teacherSpeaking}</p>
-            <p lang="en" dir="ltr" className="text-lg text-ink-2 italic">
+            <p lang="en" dir="ltr" className="text-[calc(1.125rem*var(--caption-scale,1))] text-ink-2 italic">
               {interim}
             </p>
           </div>
@@ -361,8 +457,12 @@ function CaptionItem({
   keyTerms,
   onTerm,
   glossary,
+  flagged,
+  onFlag,
 }: {
   glossary: Glossary;
+  flagged: boolean;
+  onFlag?: (seq: number) => void;
   line: CaptionLine;
   latest: boolean;
   lang: string;
@@ -395,7 +495,7 @@ function CaptionItem({
 
   if (lang === "en" || line.trStatus === "none") {
     return (
-      <li lang="en" dir="ltr" className={cn("text-[1.35rem] leading-relaxed", faded)}>
+      <li lang="en" dir="ltr" className={cn("text-[calc(1.35rem*var(--caption-scale,1))] leading-relaxed", faded)}>
         <Highlighted text={english} needles={enNeedles} onTerm={onTerm} variant="main" />
       </li>
     );
@@ -404,18 +504,30 @@ function CaptionItem({
   return (
     <li className={faded}>
       {line.tr ? (
-        <p lang={lang} dir={dir} className="text-[1.45rem] leading-relaxed font-medium">
+        <p lang={lang} dir={dir} className="text-[calc(1.45rem*var(--caption-scale,1))] leading-relaxed font-medium">
           <Highlighted text={line.tr.text} needles={trNeedles} onTerm={onTerm} variant="main" />
         </p>
       ) : (
-        <p lang="en" dir="ltr" className="text-[1.35rem] leading-relaxed text-ink-2">
+        <p lang="en" dir="ltr" className="text-[calc(1.35rem*var(--caption-scale,1))] leading-relaxed text-ink-2">
           <Highlighted text={english} needles={enNeedles} onTerm={onTerm} variant="main" />
         </p>
       )}
       {line.tr && bilingual && (
-        <p lang="en" dir="ltr" className="mt-1 text-sm leading-snug text-ink-2">
+        <p lang="en" dir="ltr" className="mt-1 text-[calc(0.875rem*var(--caption-scale,1))] leading-snug text-ink-2">
           <Highlighted text={english} needles={enNeedles} onTerm={onTerm} variant="sub" />
         </p>
+      )}
+      {line.tr && onFlag && (
+        <button
+          onClick={() => !flagged && onFlag(line.seq)}
+          aria-pressed={flagged}
+          aria-label={flagged ? t.flagged : t.flagTranslation}
+          title={flagged ? t.flagged : t.flagTranslation}
+          className={cn("mt-1 inline-flex items-center gap-1 rounded-md p-1 text-xs", flagged ? "text-coral" : "text-ink-3 hover:text-ink-2")}
+        >
+          <Flag className={cn("size-3.5", flagged && "fill-current")} aria-hidden />
+          {flagged && <span>{t.flagged}</span>}
+        </button>
       )}
       {line.trStatus === "pending" && <p className="mt-1 text-xs text-ink-3">{t.translating}</p>}
       {line.trStatus === "failed" && <p className="mt-1 text-xs text-ink-3">{t.translationUnavailable}</p>}
@@ -437,10 +549,15 @@ function speak(text: string) {
 function saveWord(word: { en: string; tr?: string; gloss?: string; lang: string; lesson: string | null }) {
   try {
     const words = JSON.parse(localStorage.getItem(WORDS_KEY) ?? "[]") as (typeof word & { savedAt: number })[];
-    if (!words.some((w) => termKey(w.en) === termKey(word.en) && w.lang === word.lang)) {
+    const existing = words.find((w) => termKey(w.en) === termKey(word.en) && w.lang === word.lang);
+    if (existing) {
+      // Fill in a translation or definition that arrived after it was saved.
+      existing.tr ??= word.tr;
+      existing.gloss ??= word.gloss;
+    } else {
       words.unshift({ ...word, savedAt: Date.now() });
-      localStorage.setItem(WORDS_KEY, JSON.stringify(words.slice(0, 300)));
     }
+    localStorage.setItem(WORDS_KEY, JSON.stringify(words.slice(0, 300)));
   } catch {
     // storage may be disabled
   }
@@ -513,5 +630,78 @@ function RecapBar({ recap, lang, t }: { recap: { status: string; recapId: string
         )}
       </div>
     </div>
+  );
+}
+
+type SavedWord = { en: string; tr?: string; gloss?: string; lang: string; lesson: string | null; savedAt: number };
+
+// Every word the student tapped, kept on this phone only (never sent anywhere).
+function MyWords({ open, onOpenChange, t }: { open: boolean; onOpenChange: (o: boolean) => void; t: StudentStrings }) {
+  const [words, setWords] = useState<SavedWord[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read the saved list each time the drawer opens
+      setWords(JSON.parse(localStorage.getItem(WORDS_KEY) ?? "[]"));
+    } catch {
+      setWords([]);
+    }
+  }, [open]);
+  const remove = (w: SavedWord) => {
+    const next = words.filter((x) => !(x.en === w.en && x.lang === w.lang));
+    setWords(next);
+    try {
+      localStorage.setItem(WORDS_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-2xl">
+        <SheetHeader>
+          <SheetTitle>{t.myWords}</SheetTitle>
+          <SheetDescription className="sr-only">Words you saved during class.</SheetDescription>
+        </SheetHeader>
+        <div className="px-4 pb-8">
+          {words.length === 0 ? (
+            <p className="text-ink-2">{t.myWordsEmpty}</p>
+          ) : (
+            <ul className="space-y-2">
+              {words.map((w) => {
+                const lang = getLanguage(w.lang);
+                return (
+                  <li key={`${w.lang}|${w.en}`} className="rounded-xl border bg-card p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p lang="en" className="font-display text-xl font-semibold">
+                        {w.en}
+                      </p>
+                      <div className="flex gap-1">
+                        <button onClick={() => speak(w.en)} className="rounded-full bg-secondary p-2" aria-label={`${t.hearIt}: ${w.en}`}>
+                          <Volume2 className="size-4" aria-hidden />
+                        </button>
+                        <button onClick={() => remove(w)} className="rounded-full p-2 text-ink-3 hover:text-ink" aria-label={`${t.remove}: ${w.en}`}>
+                          <Trash2 className="size-4" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                    {w.tr && w.lang !== "en" && (
+                      <p lang={w.lang} dir={lang?.dir} className="font-medium">
+                        {w.tr}
+                      </p>
+                    )}
+                    {w.gloss && (
+                      <p lang={w.lang} dir={lang?.dir} className="text-sm text-ink-2">
+                        {w.gloss}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -50,6 +50,17 @@ export const STUDENT_STRINGS_EN = {
   translatingRecap: "Translating the recap into your language...",
   recapNotTranslated: "The recap isn't ready in this language yet. Here it is in English.",
   language: "Language",
+  myWords: "My words",
+  myWordsEmpty: "Tap a highlighted word during class to save it here.",
+  remove: "Remove",
+  textSize: "Text size",
+  colors: "Colors",
+  themeLight: "Light",
+  themeDark: "Dark",
+  themeSystem: "Match my phone",
+  flagTranslation: "This translation looks wrong",
+  flagged: "Thanks. Your teacher will see it.",
+  aiInterface: "The words on this screen were translated by AI.",
 };
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;
