@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLessonStream, type StreamEvent } from "@/hooks/use-lesson-stream";
-import { useSpeechRecognition, type MicDevice, type SpeechStatus } from "@/hooks/use-speech-recognition";
+import { speechServiceName, useSpeechRecognition, type MicDevice, type SpeechStatus } from "@/hooks/use-speech-recognition";
 import { applyCaptionEvent, emptyCaptions, type CaptionEvent } from "@/lib/captions";
 import { getLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
@@ -396,7 +396,7 @@ function MicControl(props: MicControlProps) {
           />
           {STATUS_TEXT[status]}
           {status === "listening" && mode && (
-            <span className="font-normal text-ink-2">· {mode === "on-device" ? "on this device" : "via Google speech service"}</span>
+            <span className="font-normal text-ink-2">· {mode === "on-device" ? "on this device" : `via ${speechServiceName()}`}</span>
           )}
         </p>
         {error && <p className="mt-0.5 text-ink-2">{error}</p>}

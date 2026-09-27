@@ -43,6 +43,30 @@ function analysisContext(): AudioContext {
   }
 }
 
+const isAppleMobile = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+const isSafari = () => /Safari\//.test(navigator.userAgent) && !/Chrome|CriOS|Chromium|Edg|OPR|Android/.test(navigator.userAgent);
+
+// Whose servers do the recognizing when it isn't on the device: each browser
+// uses its maker's service.
+export function speechServiceName(): string {
+  if (typeof navigator === "undefined") return "the browser's speech service";
+  if (/Edg\//.test(navigator.userAgent)) return "Microsoft speech service";
+  if (isSafari() || isAppleMobile()) return "Apple speech service";
+  if (/Chrome\//.test(navigator.userAgent)) return "Google speech service";
+  return "the browser's speech service";
+}
+
+// "service-not-allowed": the microphone is fine, but speech recognition
+// itself is switched off for this browser (on Apple devices it rides on
+// Dictation, and each app needs Speech Recognition permission).
+export function serviceOffMessage(): string {
+  if (isAppleMobile())
+    return "Speech recognition is off for Safari on this device. In Settings, turn on Dictation (General > Keyboard) and allow Safari under Privacy & Security > Speech Recognition, then reload this page. Or type below.";
+  if (isSafari())
+    return "Speech recognition is off for Safari on this Mac. In System Settings, turn on Dictation (Keyboard) and allow Safari under Privacy & Security > Speech Recognition, then reload this page. Or type below.";
+  return "This browser's speech recognition service isn't allowed here (a school or browser setting may block it). Try another browser, or type below.";
+}
+
 // "Chrome 153", "Safari 26": for the details line under a mic error.
 function browserName(): string {
   const ua = navigator.userAgent;
@@ -297,9 +321,13 @@ export function useSpeechRecognition(opts: { onInterim: (text: string) => void; 
         forceCloud.current = true;
         return;
       }
-      const what = `speech recognition error "${e.error}" (${local ? "on-device" : "Google speech service"}, ${streamRef.current ? "the chosen mic" : "the browser's default mic"})`;
+      const what = `speech recognition error "${e.error}" (${local ? "on-device" : speechServiceName()}, ${streamRef.current ? "the chosen mic" : "the browser's default mic"})`;
       setDetail((d) => (d ? `${d}; then ${what}` : `${browserName()}: ${what}`));
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      if (e.error === "service-not-allowed") {
+        wantOn.current = false;
+        setStatus("blocked");
+        setError(serviceOffMessage());
+      } else if (e.error === "not-allowed") {
         wantOn.current = false;
         setStatus("blocked");
         setError(BLOCKED_MESSAGE);
