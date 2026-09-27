@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, HelpCircle, MessageCircleQuestion, Mic, MicOff, Send, Turtle, Users, VolumeX } from "lucide-react";
+import { Check, Copy, HelpCircle, MessageCircleQuestion, Mic, MicOff, Projector, Send, Turtle, Users, VolumeX } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -166,6 +166,13 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <ConnectionPill status={streamStatus} ended={!live} startedAt={lesson.startedAt} />
+          {live && (
+            <Button variant="outline" className="h-9" asChild>
+              <Link href={`/teach/${lesson.id}/present`} target="_blank" rel="noreferrer">
+                <Projector aria-hidden /> Projector view
+              </Link>
+            </Button>
+          )}
           {live && (
             <Button variant={confirmEnd ? "default" : "outline"} onClick={endLesson} className="h-9">
               {confirmEnd ? "Click again to end" : "End lesson"}
@@ -335,7 +342,7 @@ export function Transcript({
 }
 
 const STATUS_TEXT: Record<SpeechStatus, string> = {
-  unsupported: "Speech recognition needs Chrome on a laptop or desktop.",
+  unsupported: "Speech recognition needs Chrome or Safari.",
   idle: "Microphone off",
   starting: "Starting microphone...",
   listening: "Listening",
@@ -365,7 +372,7 @@ function MicControl(props: MicControlProps) {
   if (status === "unsupported") {
     return (
       <p className="rounded-lg bg-highlight/50 px-3 py-2 text-sm">
-        <strong>Use Chrome for the teacher view</strong> to caption your voice. Students can use any browser. You can type sentences below.
+        <strong>Use Chrome or Safari for the teacher view</strong> to caption your voice. Students can use any browser. You can type sentences below.
       </p>
     );
   }
