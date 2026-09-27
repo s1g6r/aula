@@ -1,0 +1,5 @@
+# Found a security problem in Aula? Please report it privately here.
+Contact: https://github.com/s1g6r/aula/security/advisories/new
+Expires: 2027-09-27T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://aulaapp.xyz/.well-known/security.txt
