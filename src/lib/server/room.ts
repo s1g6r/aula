@@ -32,11 +32,17 @@ type SnapshotSegment = {
 
 // Everything a screen needs to draw the lesson from scratch: sent on first
 // connect, and on reconnect when the missed events are no longer buffered.
+async function recapInfo(lessonId: string) {
+  const row = await db.lesson.findUnique({ where: { id: lessonId }, select: { recapStatus: true, recap: { select: { id: true } } } });
+  return { status: row?.recapStatus ?? "NONE", recapId: row?.recap?.id ?? null };
+}
+
 export async function studentSnapshot(lessonId: string, lang: string, participantId: string) {
-  const [lesson, glossary, questions, segments] = await Promise.all([
+  const [lesson, glossary, questions, recap, segments] = await Promise.all([
     getLesson(lessonId),
     db.term.findMany({ where: { lessonId, lang }, select: { en: true, tr: true, gloss: true } }),
     myQuestions(lessonId, participantId),
+    recapInfo(lessonId),
     db.segment.findMany({
       where: { lessonId },
       orderBy: { seq: "asc" },
@@ -53,6 +59,7 @@ export async function studentSnapshot(lessonId: string, lang: string, participan
     ended: lesson?.status === "ENDED",
     glossary,
     questions,
+    recap,
     segments: segments.map((s): SnapshotSegment => ({
       seq: s.seq,
       text: s.text,
@@ -65,12 +72,13 @@ export async function studentSnapshot(lessonId: string, lang: string, participan
 }
 
 export async function teacherSnapshot(lessonId: string) {
-  const [lesson, segments, room, signals, questions] = await Promise.all([
+  const [lesson, segments, room, signals, questions, recap] = await Promise.all([
     getLesson(lessonId),
     db.segment.findMany({ where: { lessonId }, orderBy: { seq: "asc" }, select: { seq: true, text: true, fixedText: true, startedAt: true } }),
     roomState(lessonId),
     signalSummary(lessonId),
     teacherQuestions(lessonId),
+    recapInfo(lessonId),
   ]);
   return {
     ended: lesson?.status === "ENDED",
@@ -78,5 +86,6 @@ export async function teacherSnapshot(lessonId: string) {
     room,
     signals,
     questions,
+    recap,
   };
 }

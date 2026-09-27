@@ -47,10 +47,15 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
   const [sendError, setSendError] = useState<string | null>(null);
   const [signals, setSignals] = useState<Signals>(NO_SIGNALS);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [recap, setRecap] = useState<{ status: string; recapId: string | null }>({ status: "NONE", recapId: null });
 
   const onEvent = useCallback((e: StreamEvent) => {
     if (e.type === "room") setRoom(e.data as Room);
     else if (e.type === "signal-summary") setSignals(e.data as Signals);
+    else if (e.type === "recap") {
+      const r = e.data as { status: string; recapId?: string };
+      setRecap((prev) => ({ status: r.status, recapId: r.recapId ?? prev.recapId }));
+    }
     else if (e.type === "question") {
       const q = e.data as Question;
       setQuestions((qs) => (qs.some((x) => x.id === q.id) ? qs.map((x) => (x.id === q.id ? q : x)) : [...qs, q]));
@@ -58,7 +63,8 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
       const { id } = e.data as { id: string };
       setQuestions((qs) => qs.filter((q) => q.id !== id));
     } else if (e.type === "snapshot") {
-      const data = e.data as { room?: Room; signals?: Signals; questions?: Question[] };
+      const data = e.data as { room?: Room; signals?: Signals; questions?: Question[]; recap?: { status: string; recapId: string | null } };
+      if (data.recap) setRecap(data.recap);
       if (data.room) setRoom(data.room);
       if (data.signals) setSignals(data.signals);
       if (data.questions) setQuestions(data.questions);
@@ -218,13 +224,7 @@ export function TeacherLive({ lesson, joinUrl, qrSvg }: Props) {
           {live ? (
             <JoinCard code={lesson.code} joinUrl={joinUrl} qrSvg={qrSvg} />
           ) : (
-            <div className="rounded-2xl border bg-card p-5">
-              <h2 className="text-lg font-semibold">Lesson ended</h2>
-              <p className="mt-1 text-sm text-ink-2">Students can no longer join. The recap and review arrive in a later update.</p>
-              <Link href="/teach" className="mt-4 inline-block text-sm font-medium text-coral underline underline-offset-4">
-                Back to your lessons
-              </Link>
-            </div>
+            <EndedCard lessonId={lesson.id} recap={recap} />
           )}
           <RoomCard room={room} />
         </aside>
@@ -614,5 +614,55 @@ function QuestionItem({ lessonId, q }: { lessonId: string; q: Question }) {
         </Button>
       </div>
     </li>
+  );
+}
+
+function EndedCard({ lessonId, recap }: { lessonId: string; recap: { status: string; recapId: string | null } }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <section aria-labelledby="ended-h" className="rounded-2xl border bg-card p-5" aria-live="polite">
+      <h2 id="ended-h" className="text-lg font-semibold">
+        Lesson ended
+      </h2>
+      {recap.status === "GENERATING" && (
+        <p className="mt-2 flex items-center gap-2 text-sm text-ink-2">
+          <span className="size-2 animate-pulse-soft rounded-full bg-coral" aria-hidden />
+          Writing the recap in every language from the room...
+        </p>
+      )}
+      {recap.status === "FAILED" && (
+        <p className="mt-2 text-sm text-ink-2">
+          The recap couldn&rsquo;t be written.{" "}
+          <button className="font-medium text-coral underline underline-offset-4" onClick={() => void fetch(`/api/lessons/${lessonId}/recap`, { method: "POST" })}>
+            Try again
+          </button>
+        </p>
+      )}
+      {recap.status === "READY" && recap.recapId && (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-ink-2">The recap is on every student&rsquo;s phone. Share it with anyone who was absent:</p>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              await navigator.clipboard.writeText(`${window.location.origin}/r/${recap.recapId}`);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+            {copied ? "Link copied" : "Copy \u201cWhat you missed\u201d link"}
+          </Button>
+        </div>
+      )}
+      <div className="mt-4 flex flex-col gap-2">
+        <Button asChild>
+          <Link href={`/teach/${lessonId}/review`}>Review this lesson</Link>
+        </Button>
+        <Link href="/teach" className="text-center text-sm font-medium text-ink-2 underline underline-offset-4">
+          Back to your lessons
+        </Link>
+      </div>
+    </section>
   );
 }

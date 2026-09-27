@@ -32,6 +32,7 @@ const EVENT_TYPES = [
   "question-status",
   "question-removed",
   "glossary",
+  "recap",
 ] as const;
 
 export type StreamEvent = { type: (typeof EVENT_TYPES)[number]; data: unknown };

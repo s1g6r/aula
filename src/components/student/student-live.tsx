@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowDown, Check, Globe, SlidersHorizontal, Volume2 } from "lucide-react";
+import { ArrowDown, BookOpen, Check, Globe, SlidersHorizontal, Volume2 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { changeLanguageAction } from "@/app/actions/join";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -49,6 +50,7 @@ export function StudentLive({ lesson, me }: Props) {
   const [bilingual, setBilingual] = useState(true);
   const [openTerm, setOpenTerm] = useState<OpenTerm | null>(null);
   const [questions, setQuestions] = useState<MyQuestion[]>([]);
+  const [recap, setRecap] = useState<{ status: string; recapId: string | null }>({ status: "NONE", recapId: null });
   const t = studentStrings(lang);
   const language = getLanguage(lang);
 
@@ -69,14 +71,19 @@ export function StudentLive({ lesson, me }: Props) {
   const onEvent = useCallback(
     (e: StreamEvent) => {
       if (e.type === "glossary") return addGlossary((e.data as { terms: { en: string; tr: string; gloss: string }[] }).terms);
+      if (e.type === "recap") {
+        const r = e.data as { status: string; recapId?: string };
+        return setRecap((prev) => ({ status: r.status, recapId: r.recapId ?? prev.recapId }));
+      }
       if (e.type === "question-status") {
         const { id } = e.data as { id: string };
         return setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, answered: true } : q)));
       }
       if (e.type === "snapshot") {
-        const data = e.data as { glossary?: { en: string; tr: string; gloss: string }[]; questions?: MyQuestion[] };
+        const data = e.data as { glossary?: { en: string; tr: string; gloss: string }[]; questions?: MyQuestion[]; recap?: { status: string; recapId: string | null } };
         addGlossary(data.glossary ?? [], true);
         setQuestions(data.questions ?? []);
+        if (data.recap) setRecap(data.recap);
       }
       dispatch(e as CaptionEvent);
     },
@@ -192,6 +199,8 @@ export function StudentLive({ lesson, me }: Props) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {captions.ended && <RecapBar recap={recap} lang={lang} t={t} />}
 
       {!captions.ended && (
         <StudentActions
@@ -462,5 +471,32 @@ function TermSheet({ term, onClose, lang, glossary, t, lessonTitle }: { term: Op
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function RecapBar({ recap, lang, t }: { recap: { status: string; recapId: string | null }; lang: string; t: StudentStrings }) {
+  return (
+    <div className="border-t bg-card/90 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]" role="status" aria-live="polite">
+      <div className="mx-auto max-w-2xl">
+        {recap.status === "READY" && recap.recapId ? (
+          <Link
+            href={`/r/${recap.recapId}?lang=${encodeURIComponent(lang)}`}
+            className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-coral text-base font-semibold text-primary-foreground"
+          >
+            <BookOpen className="size-5" aria-hidden />
+            {t.readRecap}
+          </Link>
+        ) : recap.status === "GENERATING" ? (
+          <p className="flex items-center justify-center gap-2 py-3 text-ink-2">
+            <span className="size-2 animate-pulse-soft rounded-full bg-coral" aria-hidden />
+            {t.recapWriting}
+          </p>
+        ) : recap.status === "FAILED" ? (
+          <p className="py-3 text-center text-ink-2">{t.recapFailed}</p>
+        ) : (
+          <p className="py-3 text-center text-ink-2">{t.ended}</p>
+        )}
+      </div>
+    </div>
   );
 }
