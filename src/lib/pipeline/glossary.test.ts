@@ -43,7 +43,10 @@ describe("GlossaryService", () => {
   });
 
   it("runs once per lesson and language even if asked twice at the same time", async () => {
-    const h = harness([JSON.stringify({ terms: [{ en: "ATP", tr: "ATP", gloss: "g" }] }), JSON.stringify({ terms: [{ en: "glucose", tr: "g", gloss: "g" }] })]);
+    const h = harness([
+      JSON.stringify({ terms: [{ en: "photosynthesis", tr: "p", gloss: "g" }, { en: "ATP", tr: "ATP", gloss: "g" }] }),
+      JSON.stringify({ terms: [{ en: "glucose", tr: "g", gloss: "g" }] }),
+    ]);
     await Promise.all([h.svc.ensure(lesson, "vi"), h.svc.ensure(lesson, "vi")]);
     expect(h.prompts).toHaveLength(2); // 3 terms in chunks of 2, once
   });
@@ -52,7 +55,53 @@ describe("GlossaryService", () => {
     const h = harness(["not json", "also not json"]);
     await h.svc.ensure(lesson, "ar");
     expect(h.saved).toHaveLength(0);
-    expect(h.errors).toHaveLength(2);
+    // Two chunks, each tried twice, in each of the two passes.
+    expect(h.errors).toHaveLength(4);
+  });
+
+  it("asks once more for terms the model left out", async () => {
+    const h = harness([
+      JSON.stringify({ terms: [{ en: "photosynthesis", tr: "fotosíntesis", gloss: "g" }] }),
+      JSON.stringify({ terms: [{ en: "glucose", tr: "glucosa", gloss: "g" }] }),
+      JSON.stringify({ terms: [{ en: "ATP", tr: "ATP", gloss: "g" }] }),
+    ]);
+    await h.svc.ensure(lesson, "es");
+    expect(h.prompts).toHaveLength(3);
+    expect(h.prompts[2]).toContain('Terms: ["ATP"]');
+    expect(h.saved.flat().map((e) => e.en).sort()).toEqual(["ATP", "glucose", "photosynthesis"]);
+  });
+
+  it("stops when the lesson has been deleted", async () => {
+    let calls = 0;
+    const svc = new GlossaryService({
+      complete: async () => {
+        calls++;
+        return "{}";
+      },
+      schedule: (_p, fn) => fn(new AbortController().signal),
+      priority: async () => null,
+      load: async () => [],
+      save: async () => {},
+      publish: () => {},
+    });
+    await svc.ensure(lesson, "es");
+    expect(calls).toBe(0);
+  });
+
+  it("tells the caller which language each call is for (to pick the model)", async () => {
+    const langs: string[] = [];
+    const svc = new GlossaryService({
+      complete: async (_args, lang) => {
+        langs.push(lang);
+        return JSON.stringify({ terms: [{ en: "ATP", tr: "ATP", gloss: "g" }] });
+      },
+      schedule: (_p, fn) => fn(new AbortController().signal),
+      load: async () => [],
+      save: async () => {},
+      publish: () => {},
+    });
+    await svc.ensure({ ...lesson, keyTerms: ["ATP"] }, "so");
+    expect(langs).toEqual(["so"]);
   });
 
   it("uses simple English for students reading in English", async () => {

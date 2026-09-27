@@ -131,19 +131,31 @@ export function buildRecapMessages(req: { subject?: string; title?: string; keyT
   ];
 }
 
-export const RECAP_TRANSLATE_SYSTEM = `You translate a lesson recap for a high-school student. You get the recap as JSON in English.
+// Recaps are translated in two parts: the summary first (short, so every
+// student has it within seconds), then the key terms and check questions.
+export type RecapPart = "summary" | "details";
+
+const RECAP_SHAPES: Record<RecapPart, string> = {
+  summary: `{"summary":["..."]}`,
+  details: `{"keyTerms":[{"term":"<English>","tr":"...","definition":"..."}],"checkQuestions":[{"q":"...","answer":"..."}]}`,
+};
+
+export function recapTranslateSystem(part: RecapPart): string {
+  return `You translate part of a lesson recap for a high-school student. You get it as JSON in English.
 
 Rules:
-1. Translate every summary sentence, definition, question and answer into the requested language. Use simple, clear language a 14-year-old understands.
-2. For each key term keep "term" exactly as it is in English, and add "tr": the standard translation a textbook would use.
-3. Do not add or remove anything.
-4. Reply with minified JSON only, in exactly this shape:
-{"summary":["..."],"keyTerms":[{"term":"<English>","tr":"...","definition":"..."}],"checkQuestions":[{"q":"...","answer":"..."}]}`;
+1. Translate every ${part === "summary" ? "summary sentence" : "definition, question and answer"} into the requested language. Use simple, clear language a 14-year-old understands.
+${part === "details" ? `2. For each key term keep "term" exactly as it is in English, and add "tr": the standard translation a textbook would use.
+` : ""}${part === "details" ? "3" : "2"}. Do not add or remove anything.
+${part === "details" ? "4" : "3"}. Reply with minified JSON only, in exactly this shape:
+${RECAP_SHAPES[part]}`;
+}
 
-export function buildRecapTranslationMessages(req: { recap: unknown; lang: string }): ChatMessage[] {
+export function buildRecapTranslationMessages(req: { recap: { summary: string[]; keyTerms: unknown[]; checkQuestions: unknown[] }; lang: string; part: RecapPart }): ChatMessage[] {
   const langName = getLanguage(req.lang)?.promptName ?? req.lang;
+  const input = req.part === "summary" ? { summary: req.recap.summary } : { keyTerms: req.recap.keyTerms, checkQuestions: req.recap.checkQuestions };
   return [
-    { role: "system", content: RECAP_TRANSLATE_SYSTEM },
-    { role: "user", content: `Language: ${langName} (${req.lang})\n\nRecap:\n${JSON.stringify(req.recap)}` },
+    { role: "system", content: recapTranslateSystem(req.part) },
+    { role: "user", content: `Language: ${langName} (${req.lang})\n\nRecap:\n${JSON.stringify(input)}` },
   ];
 }

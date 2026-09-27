@@ -86,5 +86,9 @@ export const RecapTranslationSchema = z.object({
   checkQuestions: z.array(z.object({ q: z.string().trim().min(1).max(500), answer: z.string().trim().min(1).max(600) })).min(1).max(5),
 });
 
+export const RecapSummaryTranslationSchema = RecapTranslationSchema.pick({ summary: true });
+export const RecapDetailsTranslationSchema = RecapTranslationSchema.pick({ keyTerms: true, checkQuestions: true });
+
 export type Recap = z.infer<typeof RecapSchema>;
 export type RecapTranslation = z.infer<typeof RecapTranslationSchema>;
+export type RecapSummaryTranslation = z.infer<typeof RecapSummaryTranslationSchema>;

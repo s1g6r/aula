@@ -10,7 +10,7 @@ import { getLanguage, LANGUAGES } from "@/lib/languages";
 import { studentStrings } from "@/i18n/student";
 import { formatDate } from "@/lib/dates";
 
-type Data = View & { translating?: boolean };
+type Data = View & { translating?: boolean; draft?: { summary: string[] } | null };
 
 function speak(text: string) {
   if (!("speechSynthesis" in window)) return;
@@ -23,7 +23,8 @@ function speak(text: string) {
 
 // The "What you missed" page. Anyone with the link can read it, in any
 // language. If the recap isn't in that language yet, it's translated now and
-// the page checks back every few seconds.
+// the page checks back every couple of seconds: the summary shows up first,
+// then the key words and questions.
 export function RecapView({ initial, explicitLang }: { initial: Data; explicitLang: boolean }) {
   const [data, setData] = useState<Data>(initial);
   const [lang, setLang] = useState(initial.lang);
@@ -55,7 +56,7 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
       if (!res.ok || cancelled) return;
       const next = (await res.json()) as Data;
       setData(next);
-      if (lang !== "en" && !next.translated && next.translating && tries++ < 40) setTimeout(load, 3000);
+      if (lang !== "en" && !next.translated && next.translating && tries++ < 90) setTimeout(load, 2000);
       else setGaveUp(lang !== "en" && !next.translated);
     };
     if (lang !== initial.lang || (lang !== "en" && !initial.translated)) void load();
@@ -71,7 +72,8 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
   };
 
   const tr = data.lang === lang ? data.translated : null;
-  const summary = tr?.summary ?? data.english.summary;
+  const draft = data.lang === lang && !tr ? data.draft : null;
+  const summary = tr?.summary ?? draft?.summary ?? data.english.summary;
   const keyTerms = tr?.keyTerms ?? data.english.keyTerms.map((k) => ({ ...k, tr: null as string | null }));
   const questions = tr?.checkQuestions ?? data.english.checkQuestions;
   const shownLang = tr ? lang : "en";
@@ -118,7 +120,16 @@ export function RecapView({ initial, explicitLang }: { initial: Data; explicitLa
         </p>
       )}
 
-      <RecapBody summary={summary} keyTerms={keyTerms} questions={questions} shownLang={shownLang} shownDir={shownDir} lang={lang} />
+      <RecapBody
+        summary={summary}
+        keyTerms={keyTerms}
+        questions={questions}
+        shownLang={shownLang}
+        shownDir={shownDir}
+        summaryLang={draft ? lang : undefined}
+        summaryDir={draft ? dir : undefined}
+        lang={lang}
+      />
 
       <details className="mt-12 rounded-2xl border bg-card p-4">
         <summary className="cursor-pointer text-lg font-semibold" lang={lang}>
@@ -157,6 +168,10 @@ export type RecapBodyProps = {
   // Language the content is in (falls back to English while translating).
   shownLang: string;
   shownDir: "ltr" | "rtl";
+  // The summary is translated first, so it can be in the reader's language
+  // while the rest is still English.
+  summaryLang?: string;
+  summaryDir?: "ltr" | "rtl";
   // The reader's language, for headings.
   lang: string;
   compact?: boolean;
@@ -164,7 +179,7 @@ export type RecapBodyProps = {
 
 // The recap itself: what we learned, key words, check yourself. Shared by
 // the "What you missed" page and the Demo Replay's phone.
-export function RecapBody({ summary, keyTerms, questions, shownLang, shownDir, lang, compact = false }: RecapBodyProps) {
+export function RecapBody({ summary, keyTerms, questions, shownLang, shownDir, summaryLang, summaryDir, lang, compact = false }: RecapBodyProps) {
   const t = studentStrings(lang);
   return (
     <>
@@ -176,7 +191,7 @@ export function RecapBody({ summary, keyTerms, questions, shownLang, shownDir, l
           {summary.map((line, i) => (
             <li key={i} className="flex gap-3">
               <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-coral-soft text-sm font-semibold text-coral">{i + 1}</span>
-              <p lang={shownLang} dir={shownDir} className="text-lg leading-relaxed">
+              <p lang={summaryLang ?? shownLang} dir={summaryDir ?? shownDir} className="text-lg leading-relaxed">
                 {line}
               </p>
             </li>

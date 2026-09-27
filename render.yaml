@@ -33,7 +33,7 @@ services:
       - key: AI_MODEL_QUALITY
         value: google/gemma-4-26B-A4B-it
       - key: AI_MODEL_RECAP
-        value: google/gemma-4-26B-A4B-it
+        value: Qwen/Qwen3-30B-A3B-Instruct-2507
       - key: AI_CONCURRENCY_UNITS
         value: "4"
       - key: AI_MAX_INFLIGHT
@@ -43,7 +43,7 @@ services:
       - key: AI_QUALITY_COST
         value: "2"
       - key: AI_RECAP_COST
-        value: "2"
+        value: "1"
       - key: DATA_RETENTION_DAYS
         value: "30"
       - key: GUEST_LESSON_TTL_HOURS

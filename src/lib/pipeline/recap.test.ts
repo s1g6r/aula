@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PreemptedError } from "./scheduler";
-import { translateRecap, trimTranscript, writeRecap, type RecapDeps } from "./recap";
+import { translateRecap, translateRecapSummary, trimTranscript, writeRecap, type RecapDeps } from "./recap";
 
 const recap = {
   summary: ["Plants make food with light.", "This is called photosynthesis.", "It happens in chloroplasts."],
@@ -50,13 +50,32 @@ describe("writeRecap", () => {
 });
 
 describe("translateRecap", () => {
-  it("uses the language's model and keeps English key terms", async () => {
-    const tr = { summary: ["Dhirtu..."], keyTerms: [{ term: "photosynthesis", tr: "sawir-qaadis", definition: "..." }], checkQuestions: [{ q: "?", answer: "." }] };
-    const d = deps([JSON.stringify(tr)]);
+  const details = { keyTerms: [{ term: "photosynthesis", tr: "sawir-qaadis", definition: "..." }], checkQuestions: [{ q: "?", answer: "." }] };
+
+  it("translates the summary first, then the details, with the language's model", async () => {
+    const d = deps([JSON.stringify({ summary: ["Dhirtu..."] }), JSON.stringify(details)]);
     const r = await translateRecap(d, recap, "so");
-    expect(r?.keyTerms[0].term).toBe("photosynthesis");
-    expect(d.models).toEqual(["gemma"]);
+    expect(r).toEqual({ summary: ["Dhirtu..."], ...details });
+    expect(d.models).toEqual(["gemma", "gemma"]);
     expect(d.prompts[0]).toContain("Language: Somali (so)");
+    // Each call carries only its own part of the recap.
+    expect(d.prompts[0]).toContain('"summary"');
+    expect(d.prompts[0]).not.toContain('"keyTerms"');
+    expect(d.prompts[1]).toContain('"keyTerms"');
+    expect(d.prompts[1]).not.toContain('"summary"');
+  });
+
+  it("reuses a summary that was already translated", async () => {
+    const d = deps([JSON.stringify(details)]);
+    const r = await translateRecap(d, recap, "es", { summary: ["Las plantas..."] });
+    expect(r?.summary).toEqual(["Las plantas..."]);
+    expect(d.prompts).toHaveLength(1);
+  });
+
+  it("keeps the summary on its own when asked for just that", async () => {
+    const d = deps([JSON.stringify({ summary: ["Las plantas..."] })]);
+    expect(await translateRecapSummary(d, recap, "es")).toEqual({ summary: ["Las plantas..."] });
+    expect(d.models).toEqual(["qwen"]);
   });
 });
 

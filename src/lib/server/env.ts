@@ -17,11 +17,13 @@ export const env = {
   get aiModelTranslate() {
     return process.env.AI_MODEL_TRANSLATE || "";
   },
-  // Stronger model for languages with less training data (the "beta" ones),
-  // glossaries and recaps. Falls back to the translation model.
+  // Stronger model for languages with less training data (the "beta" ones)
+  // and glossaries. Falls back to the translation model.
   get aiModelQuality() {
     return process.env.AI_MODEL_QUALITY || process.env.AI_MODEL_TRANSLATE || "";
   },
+  // Writes the English recap. Students are waiting for it, so we use the
+  // fast model (its recaps were as good in our comparison, in 10s instead of 15s).
   get aiModelRecap() {
     return process.env.AI_MODEL_RECAP || process.env.AI_MODEL_QUALITY || process.env.AI_MODEL_TRANSLATE || "";
   },

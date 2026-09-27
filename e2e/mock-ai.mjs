@@ -45,12 +45,13 @@ const server = http.createServer(async (req, res) => {
   const recapToTranslate = user.match(/^Language: .*\(([a-zA-Z-]+)\)\n\nRecap:\n([\s\S]*)$/);
   if (recapToTranslate) {
     const [, lang, json] = recapToTranslate;
+    // Recaps are translated in two parts: the summary, then the rest.
     const r = JSON.parse(json);
-    content = JSON.stringify({
-      summary: r.summary.map((s) => `[${lang}] ${s}`),
-      keyTerms: r.keyTerms.map((k) => ({ term: k.term, tr: `${k.term}-${lang}`, definition: `[${lang}] ${k.definition}` })),
-      checkQuestions: r.checkQuestions.map((q) => ({ q: `[${lang}] ${q.q}`, answer: `[${lang}] ${q.answer}` })),
-    });
+    const out = {};
+    if (r.summary) out.summary = r.summary.map((s) => `[${lang}] ${s}`);
+    if (r.keyTerms) out.keyTerms = r.keyTerms.map((k) => ({ term: k.term, tr: `${k.term}-${lang}`, definition: `[${lang}] ${k.definition}` }));
+    if (r.checkQuestions) out.checkQuestions = r.checkQuestions.map((q) => ({ q: `[${lang}] ${q.q}`, answer: `[${lang}] ${q.answer}` }));
+    content = JSON.stringify(out);
   } else if (transcript) {
     const lines = transcript[1].split("\n").map((l) => l.replace(/^\d+\. /, "")).filter(Boolean);
     const terms = (user.match(/^Teacher's key terms: (.*)$/m)?.[1] ?? "").split(", ").filter((t) => t && t !== "(none)");

@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { chatComplete, createAiClient } from "@/lib/ai/client";
 import { parseModelJson } from "@/lib/ai/json";
 import { buildQuestionMessages, type ChatMessage } from "@/lib/ai/prompts";
-import { QuestionTranslationSchema, type LangTranslation, type Recap } from "@/lib/ai/schemas";
+import { QuestionTranslationSchema, type LangTranslation, type Recap, type RecapSummaryTranslation } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { bus } from "@/lib/realtime/bus";
 import { env } from "@/lib/server/env";
@@ -10,16 +10,18 @@ import { getLesson } from "@/lib/server/lessons";
 import { singleton } from "@/lib/server/singleton";
 import { GlossaryService, type GlossaryEntry } from "./glossary";
 import { Lru } from "./lru";
-import { translateRecap, writeRecap, type RecapDeps } from "./recap";
+import { translateRecap, translateRecapSummary, writeRecap, type RecapDeps } from "./recap";
 import { pickModelFor } from "./routing";
-import { AiScheduler, PreemptedError } from "./scheduler";
+import { AiScheduler, isPreempted } from "./scheduler";
 import { LessonTranslator, type CallRecord } from "./translator";
 
 // Connects the translation pipeline to the real world: the Featherless
 // client, the database, and the live event bus. Everything is one instance
 // per server process.
 
-const scheduler = singleton("aiScheduler", () => new AiScheduler(env.aiConcurrencyUnits, env.aiMaxInflight));
+// A background call that's less than a second from done may finish before a
+// caption (see AiScheduler).
+const scheduler = singleton("aiScheduler", () => new AiScheduler(env.aiConcurrencyUnits, env.aiMaxInflight, 1000));
 const cache = singleton("translationCache", () => new Lru<string, LangTranslation>(2000));
 const translators = singleton("translators", () => new Map<string, LessonTranslator>());
 const latencies = singleton("latencies", () => new Map<string, number[]>());
@@ -53,9 +55,9 @@ async function complete(model: string, args: { messages: ChatMessage[]; signal: 
 // Live captions (priority 0) are never preempted; everything else is
 // background work that yields to them. Long waits are logged, so a caption
 // stuck behind something is visible in the server log.
-const schedule = <T>(priority: number, cost: number, fn: (signal: AbortSignal) => Promise<T>) => {
+const schedule = <T>(priority: number, cost: number, fn: (signal: AbortSignal) => Promise<T>, expectedMs?: number) => {
   const queuedAt = Date.now();
-  return scheduler.run({ cost, priority, preemptible: priority > 0 }, (signal) => {
+  return scheduler.run({ cost, priority, preemptible: priority > 0, expectedMs }, (signal) => {
     const waited = Date.now() - queuedAt;
     if (priority === 0 && waited > 2000) log(`caption waited ${waited}ms for an AI slot`);
     return fn(signal);
@@ -72,13 +74,25 @@ const glossary = singleton(
   "glossary",
   () =>
     new GlossaryService({
-      // Glossaries run once per language and aren't time-critical, so they
-      // always use the stronger model (it completed 12/12 in the benchmark).
-      complete: (args) => complete(env.aiModelQuality, args, 1500),
-      schedule: (priority, fn) => schedule(priority, env.aiQualityCost, fn),
-      isPreempted: (err) => err instanceof PreemptedError,
-      // Small chunks, so a live caption never waits long behind a glossary call.
-      chunkSize: 3,
+      // The fast model, one term per call (under 2 seconds), so a glossary
+      // fits in the pauses between captions and highlights show up early in
+      // the lesson. "Beta" languages use the stronger model. A garbled reply
+      // is cut off at 600 tokens and retried.
+      complete: (args, lang) => complete(pickModel([lang]).model, args, 600),
+      // A one-term call takes about 2 seconds on the fast model, 4 on the stronger one.
+      schedule: (priority, fn, lang) => {
+        const { model, cost } = pickModel([lang]);
+        return schedule(priority, cost, fn, model === env.aiModelTranslate ? 2000 : 4000);
+      },
+      isPreempted,
+      // Glossaries wait behind captions and recaps; once their lesson has
+      // ended, behind every other lesson's glossaries too.
+      priority: async (lessonId) => {
+        const lesson = await getLesson(lessonId);
+        return lesson ? (lesson.status === "LIVE" ? 2 : 3) : null;
+      },
+      chunkSize: 1,
+      timeoutMs: 15_000,
       load: async (lessonId, lang) => db.term.findMany({ where: { lessonId, lang }, select: { en: true, tr: true, gloss: true } }),
       save: async (lessonId, lang, entries) => {
         await db.term.createMany({ data: entries.map((e) => ({ lessonId, lang, en: e.en.toLowerCase(), tr: e.tr, gloss: e.gloss })), skipDuplicates: true });
@@ -177,7 +191,7 @@ export function warmUp(): void {
       const timeout = AbortSignal.any([signal, AbortSignal.timeout(20_000)]);
       return chatComplete(ai(), { model, messages: [{ role: "user", content: "Reply with OK." }], maxTokens: 3, jsonMode: false, signal: timeout });
     }).catch((err) => {
-      if (!(err instanceof PreemptedError)) log("warm-up", model, (err as Error).message);
+      if (!isPreempted(err)) log("warm-up", model, (err as Error).message);
     });
   }
 }
@@ -231,7 +245,7 @@ const recapDeps = (): RecapDeps => ({
   schedule,
   recapModel: { model: env.aiModelRecap, cost: env.aiRecapCost },
   modelForLang: (lang) => pickModel([lang]),
-  isPreempted: (err) => err instanceof PreemptedError,
+  isPreempted,
 });
 
 // Writes the English recap for an ended lesson, then translates it into every
@@ -269,10 +283,21 @@ export function generateLessonRecap(lessonId: string): Promise<void> {
       return;
     }
     const recap = await db.recap.create({ data: { lessonId, content, model: env.aiModelRecap } });
+    // Most-read languages first. Every language gets its summary (a few
+    // seconds each) before any gets the longer key terms and questions, so
+    // no student waits for someone else's full recap.
+    const counts = new Map<string, number>();
+    for (const p of lesson.participants) if (p.lang !== "en") counts.set(p.lang, (counts.get(p.lang) ?? 0) + 1);
+    const langs = [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)!);
+    for (const lang of langs) recapPlanned.add(`${recap.id}|${lang}`);
     await db.lesson.update({ where: { id: lessonId }, data: { recapStatus: "READY" } });
     bus.publish(lessonId, "recap", { status: "READY", recapId: recap.id });
-    const langs = [...new Set(lesson.participants.map((p) => p.lang))].filter((l) => l !== "en");
-    for (const lang of langs) await ensureRecapTranslation(recap.id, lang);
+    try {
+      for (const lang of langs) await ensureRecapSummary(recap.id, lang);
+      for (const lang of langs) await ensureRecapTranslation(recap.id, lang);
+    } finally {
+      for (const lang of langs) recapPlanned.delete(`${recap.id}|${lang}`);
+    }
   })()
     .catch((err) => log("recap", (err as Error).message))
     .finally(() => recapJobs.delete(lessonId));
@@ -281,6 +306,42 @@ export function generateLessonRecap(lessonId: string): Promise<void> {
 }
 
 const recapTranslationJobs = singleton("recapTranslationJobs", () => new Map<string, Promise<boolean>>());
+const recapSummaryJobs = singleton("recapSummaryJobs", () => new Map<string, Promise<RecapSummaryTranslation | null>>());
+// Translated summaries whose key terms and questions are still on the way.
+// The recap page shows them right away.
+const recapDrafts = singleton("recapDrafts", () => new Map<string, RecapSummaryTranslation>());
+// Languages an ended lesson's recap job will get to (so the page keeps
+// waiting instead of starting its own translation).
+const recapPlanned = singleton("recapPlanned", () => new Set<string>());
+
+async function recapNeedsTranslation(recapId: string, lang: string): Promise<Recap | null> {
+  const recap = await db.recap.findUnique({ where: { id: recapId }, select: { content: true, translations: { where: { lang }, select: { id: true } } } });
+  return recap && !recap.translations.length && aiEnabled() ? (recap.content as Recap) : null;
+}
+
+// The recap's summary in one language, kept as a draft until the rest is done.
+function ensureRecapSummary(recapId: string, lang: string): Promise<RecapSummaryTranslation | null> {
+  const key = `${recapId}|${lang}`;
+  const draft = recapDrafts.get(key);
+  if (draft) return Promise.resolve(draft);
+  const running = recapSummaryJobs.get(key);
+  if (running) return running;
+  const job = (async () => {
+    const content = await recapNeedsTranslation(recapId, lang);
+    if (!content) return null;
+    const summary = await translateRecapSummary(recapDeps(), content, lang).catch((err) => {
+      log("recap summary", lang, (err as Error).message);
+      return null;
+    });
+    if (summary) {
+      recapDrafts.set(key, summary);
+      if (recapDrafts.size > 500) recapDrafts.delete(recapDrafts.keys().next().value!);
+    }
+    return summary;
+  })().finally(() => recapSummaryJobs.delete(key));
+  recapSummaryJobs.set(key, job);
+  return job;
+}
 
 // Translates a recap into one language if it isn't already. Used after a
 // lesson (for the languages in the room) and on demand, when someone opens a
@@ -290,16 +351,16 @@ export function ensureRecapTranslation(recapId: string, lang: string): Promise<b
   const running = recapTranslationJobs.get(key);
   if (running) return running;
   const job = (async () => {
-    const existing = await db.recapTranslation.findUnique({ where: { recapId_lang: { recapId, lang } }, select: { id: true } });
-    if (existing) return true;
-    const recap = await db.recap.findUnique({ where: { id: recapId }, select: { content: true } });
-    if (!recap || !aiEnabled()) return false;
-    const tr = await translateRecap(recapDeps(), recap.content as Recap, lang).catch((err) => {
+    const content = await recapNeedsTranslation(recapId, lang);
+    if (!content) return Boolean(await db.recapTranslation.findUnique({ where: { recapId_lang: { recapId, lang } }, select: { id: true } }));
+    const summary = await ensureRecapSummary(recapId, lang);
+    const tr = await translateRecap(recapDeps(), content, lang, summary).catch((err) => {
       log("recap translation", lang, (err as Error).message);
       return null;
     });
     if (!tr) return false;
     await db.recapTranslation.upsert({ where: { recapId_lang: { recapId, lang } }, create: { recapId, lang, content: tr }, update: { content: tr } });
+    recapDrafts.delete(key);
     return true;
   })().finally(() => recapTranslationJobs.delete(key));
   recapTranslationJobs.set(key, job);
@@ -307,5 +368,10 @@ export function ensureRecapTranslation(recapId: string, lang: string): Promise<b
 }
 
 export function recapTranslationPending(recapId: string, lang: string): boolean {
-  return recapTranslationJobs.has(`${recapId}|${lang}`);
+  const key = `${recapId}|${lang}`;
+  return recapPlanned.has(key) || recapTranslationJobs.has(key) || recapSummaryJobs.has(key);
+}
+
+export function recapDraft(recapId: string, lang: string): RecapSummaryTranslation | null {
+  return recapDrafts.get(`${recapId}|${lang}`) ?? null;
 }

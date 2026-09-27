@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { isLanguageCode } from "@/lib/languages";
-import { ensureRecapTranslation, recapTranslationPending } from "@/lib/pipeline";
+import { ensureRecapTranslation, recapDraft, recapTranslationPending } from "@/lib/pipeline";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { clientIp, jsonError } from "@/lib/server/http";
 import { getRecapView } from "@/lib/server/recaps";
@@ -8,7 +8,8 @@ import { getRecapView } from "@/lib/server/recaps";
 // GET /api/recaps/:id?lang=vi
 // Public: the "What you missed" page. If the recap isn't in that language
 // yet, translating it starts now and `translating` is true; the page checks
-// back every few seconds.
+// back every few seconds. The summary is translated first and comes back as
+// `draft` while the rest is still on the way.
 
 const newLanguageLimiter = createRateLimiter({ windowMs: 60_000, max: 6 });
 
@@ -27,5 +28,6 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/recaps/[
       translating = true;
     }
   }
-  return Response.json({ ...view, translating }, { headers: { "Cache-Control": "no-store" } });
+  const draft = translating ? recapDraft(id, lang) : null;
+  return Response.json({ ...view, translating, draft }, { headers: { "Cache-Control": "no-store" } });
 }
