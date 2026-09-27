@@ -49,16 +49,20 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **Claude Code generated:** the landing page, projector mode, text size and dark mode, My words, the translation flag, the 12-language student interface (translated once by Gemma, then spot-checked), the mirrored Arabic/Dari layout, icons and share image, the accessibility fixes found by the axe audit, and the font change that sped up first paint.
 - **I decided / changed:** _(fill in)_
 
+### Latency pass (Sep 27)
+- **What prompted it:** people testing Aula told me translations took about a minute and the recap about 2 minutes, long enough for a student to get lost or leave.
+- **Claude Code did:** wrote a script that times a realistic lesson end to end, measured how Featherless handles our requests (one at a time for the whole account, about 33 tokens a second), found the causes, and changed the pipeline: long speech is sent in pieces, slower-model languages get their own queue, recaps go before definitions and are translated summary-first, replies are cut off once their JSON is complete, and a language that doesn't arrive gets one retry. It also found and fixed a bug that could drop a recap. Before and after numbers are in `DECISIONS.md`.
+- **I decided / changed:** _(fill in)_
+
 ---
 
 ## 2. AI features inside Aula
 
 | Feature | What the model does | Model | Guardrails |
 |---|---|---|---|
-| Live translation | Translates each finished sentence into every language present in the room, marks where each key term appears in the translation, and repairs obvious speech-recognition mistakes | Qwen3-30B-A3B-Instruct, or Gemma 4 26B when Somali, Haitian Creole or Dari is in the room (Featherless.ai) | Output must pass a strict schema or the student sees the English line instead. Only lesson text is sent, never names. The model is told to translate only and never add content |
-| Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | Gemma 4 26B | Only terms the teacher listed are kept. Runs at low priority so it never slows captions |
+| Live translation | Translates each finished sentence into every language present in the room, marks where each key term appears in the translation, and repairs obvious speech-recognition mistakes | Qwen3-30B-A3B-Instruct; Somali, Haitian Creole and Dari go to Gemma 4 26B in a separate call (Featherless.ai) | Output must pass a strict schema or the student sees the English line instead. Only lesson text is sent, never names. The model is told to translate only and never add content |
+| Glossary | Once per language per lesson, writes a one-sentence definition of each key term in the student's language (or simple English) | Qwen3 30B, one term per call (Gemma 4 26B for Somali, Haitian Creole and Dari) | Only terms the teacher listed are kept. Terms the model leaves out are asked for again. Runs at low priority so it never slows captions |
 | Speech-recognition repair | Inside the translation call, fixes obvious mishearings ("sell membrane" to "cell membrane") | same | The correction is shown next to what Chrome heard, never silently |
 | Student questions | Translates a student's question into English for the teacher | same routing as live translation | Told to translate only and never answer. The teacher answers. Profanity is checked on the original and the English. Only the teacher sees questions |
 | Student interface text | Translated the 58 interface strings into the 12 languages once, before launch (not at runtime) | Gemma 4 26B | Every key and placeholder is checked by a test. Key buttons were reviewed by hand, and one bad Tagalog string was fixed. The app says the interface was translated by AI |
-| Recap | When the lesson ends, writes a summary, key terms with definitions, and 3 check-yourself questions, then translates them for every student's language (and any other language on request) | Gemma 4 26B writes; Qwen3 30B or Gemma translate | Built only from the transcript. Told never to add facts or homework answers. Validated before saving. Labeled "Written by AI from what the teacher said" on the page |
-| Student questions | _(P4)_ | | |
+| Recap | When the lesson ends, writes a summary, key terms with definitions, and 3 check-yourself questions, then translates them for every student's language (and any other language on request) | Qwen3 30B writes; Qwen3 30B or Gemma translate, the summary first for every language | Built only from the transcript. Told never to add facts or homework answers. Validated before saving. Labeled "Written by AI from what the teacher said" on the page |

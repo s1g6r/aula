@@ -202,6 +202,8 @@ These judgments were made by Claude Code (the AI assistant building Aula) from t
 - **Somali, Haitian Creole and Dari: `google/gemma-4-26B-A4B-it`** (2 units). Qwen's Somali wasn't usable, and Gemma's was fluent. If any student in the room reads one of these "beta" languages, that lesson's translation calls go to Gemma (for every language in the call, so it stays one call).
 - **Glossaries and recaps: Gemma.** They run once and aren't time-critical, and Gemma completed 12 of 12 glossaries against Qwen's 8.
 
+**Updated Sep 27, after testers found Aula too slow** (details in `DECISIONS.md`, "Latency pass"). Beta languages now get their own Gemma call, so Spanish no longer waits for the slower model. Recaps turned out to be time-critical: students wait for them. Qwen now writes the English recap (about 10s against Gemma's 15s, with similar quality on the demo transcript). Definitions also moved to Qwen, one term per call (about 2.5s); in a retest, 28 of 30 calls were valid and 49 of 54 terms came back, and a second pass now asks again for any missing term. Gemma still handles Somali, Haitian Creole and Dari everywhere.
+
 Rejected: Gemma everywhere (best quality, but the 4th language in a room waited about 10.6s) and Qwen everywhere (fastest, but it failed the students who most need help).
 
 ### Verified in a real lesson

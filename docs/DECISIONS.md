@@ -142,7 +142,7 @@ Asking for a definition with every term doubled the reply size. Now each languag
 Given the whole key-term list, the model "found" terms that weren't in the sentence, like chlorophyll in a sentence that never mentions it. Now we match the teacher's terms in the English ourselves and tell the model exactly which ones to mark. Then we keep a term only if its translation really appears in the translated line.
 
 **4. One call at a time per lesson, plus merging.**
-The brief suggested 2 calls in flight per lesson, and a "split" mode could send one call per language in parallel. Both lose. Our measurements show Featherless processes one account's parallel requests one after another: four glossary calls started together finished at 11, 24, 37 and 48 seconds. So each lesson runs one call, and sentences that arrive meanwhile are merged into the next call (up to 4). The setting stays configurable (`LESSON_CONCURRENCY`).
+The brief suggested 2 calls in flight per lesson, and a "split" mode could send one call per language in parallel. Both lose. Our measurements show Featherless processes one account's parallel requests one after another: four glossary calls started together finished at 11, 24, 37 and 48 seconds. So each lesson runs one call, and sentences that arrive meanwhile are merged into the next call (up to 4). The setting stays configurable (`LESSON_CONCURRENCY`). *(Changed after tester feedback: see "Latency pass" at the end.)*
 
 **5. Freshness over completeness.**
 If translation falls more than 20 seconds behind the teacher, the oldest waiting lines are skipped. Students see those in English, and captions jump back to what the teacher is saying now. A caption that's a minute late is worse than an English one.
@@ -151,7 +151,7 @@ If translation falls more than 20 seconds behind the teacher, the oldest waiting
 The brief's 8-second timeout would cut off the last language of a healthy streaming reply. Instead, a call is abandoned if no new text arrives for 8 seconds, with a 30-second hard cap. Whatever already arrived is kept, and the rest falls back to English.
 
 **One scheduler for every AI call, with priorities.**
-Live captions go first, then glossaries and catch-up translations, then recaps and warm-up calls. It also never exceeds our plan's concurrency units, so we don't trigger 429 errors in the first place. We retry once on a 429 anyway, but only if nothing has reached students yet (otherwise the retry would duplicate lines).
+Live captions go first, then glossaries and catch-up translations, then recaps and warm-up calls. *(Changed after tester feedback: see "Latency pass" at the end.)* It also never exceeds our plan's concurrency units, so we don't trigger 429 errors in the first place. We retry once on a 429 anyway, but only if nothing has reached students yet (otherwise the retry would duplicate lines).
 
 **Warm the model up when a lesson starts.**
 The first request to a model nobody has used recently took 7 to 14 seconds. Creating a lesson now sends a tiny request in the background, so the teacher's first sentence doesn't pay that cost.
@@ -166,11 +166,11 @@ If a student arrives reading a language nobody else is using, the last 3 lines a
 `e2e/mock-ai.mjs` speaks the OpenAI streaming API and returns predictable "translations". It fails on `[fail]` and hangs on `[hang]`. The app runs unchanged against it, and the tests prove that a failure or a hang still leaves students with English, and that the next sentence recovers.
 
 **Model routing: Qwen for speed, Gemma for lower-resource languages.** (Chosen together after the benchmark.)
-Live captions use `Qwen3-30B-A3B` (2.3s to the first language). If a student reading Somali, Haitian Creole or Dari is in the room, that lesson's calls go to `gemma-4-26B-A4B`, because Qwen's Somali wasn't usable. Glossaries and recaps always use Gemma. The rule lives in `src/lib/pipeline/routing.ts` and reads the `beta` flag from the language list, so there's one source of truth.
+Live captions use `Qwen3-30B-A3B` (2.3s to the first language). If a student reading Somali, Haitian Creole or Dari is in the room, that lesson's calls go to `gemma-4-26B-A4B`, because Qwen's Somali wasn't usable. Glossaries and recaps always use Gemma. *(Changed after tester feedback: see "Latency pass" at the end.)* The rule lives in `src/lib/pipeline/routing.ts` and reads the `beta` flag from the language list, so there's one source of truth.
 Rejected: Gemma everywhere (the 4th language in a room waited about 10.6s) and Qwen everywhere (fails the students who most need it).
 
 **One AI call in flight at a time, and captions preempt background work.**
-A real two-phone lesson found this. With two calls allowed at once, a caption call went to Featherless alongside a glossary call, sat in their queue with no output, hit our 8-second stall timeout, and was dropped. Our own priority queue can't reach requests already waiting on Featherless's side. So the scheduler now allows one call in flight (`AI_MAX_INFLIGHT=1`). If a caption is waiting while a background job (glossary, catch-up, warm-up) holds the slot, the background job is cancelled and retried later, and captions never are. Glossaries now run in chunks of 3 terms, so there's little to redo. After the fix: Spanish 2.3s and Arabic 3.3s median in a real lesson, with no dropped lines.
+A real two-phone lesson found this. With two calls allowed at once, a caption call went to Featherless alongside a glossary call, sat in their queue with no output, hit our 8-second stall timeout, and was dropped. Our own priority queue can't reach requests already waiting on Featherless's side. So the scheduler now allows one call in flight (`AI_MAX_INFLIGHT=1`). If a caption is waiting while a background job (glossary, catch-up, warm-up) holds the slot, the background job is cancelled and retried later, and captions never are. Glossaries now run in chunks of 3 terms, so there's little to redo. *(Changed after tester feedback: see "Latency pass" at the end.)* After the fix: Spanish 2.3s and Arabic 3.3s median in a real lesson, with no dropped lines.
 
 **The teacher picks the microphone, and Aula checks it first.** (Found in the first real mic test.)
 On a MacBook whose default input was Bluetooth AirPods, Chrome's speech engine reported "no microphone" (`audio-capture`) even though macOS allowed Chrome to use the mic. Now Aula opens the mic itself before listening. That gives precise messages: blocked, not found, or "that mic isn't sending sound", which is typical of AirPods connected to a phone. The teacher view also has a microphone picker (remembered per browser) and a small level meter, so a teacher can see Aula hears them before any words appear. The chosen mic's audio is passed straight to Chrome's recognizer, which Chrome 135+ supports. If on-device recognition fails, Aula quietly switches to Google's speech service. A new opt-in test plays a synthesized voice into real Chrome as the microphone and checks the words become a caption, which they did in about 3 seconds.
@@ -229,7 +229,7 @@ When the teacher ends the lesson, Gemma writes 3 to 5 summary sentences, up to 8
 After the English recap, it's translated into each language students used during the lesson (Qwen, or Gemma for the beta languages). Anyone opening the "What you missed" link in another language gets it translated then and there, and the page checks back every 3 seconds until it's ready. Opening new languages is rate-limited, since each one costs an AI call. Key terms keep their English form next to the translation, so the recap still teaches the English words.
 
 **Recaps are background work that yields to live captions.**
-Recap calls run at the lowest priority and are pre-empted by any live caption in any classroom. A pre-empted recap simply tries again.
+Recap calls run at the lowest priority and are pre-empted by any live caption in any classroom. A pre-empted recap simply tries again. *(Changed after tester feedback: see "Latency pass" at the end.)*
 
 **Normalize, don't reject, a good recap with the wrong shape.**
 In testing, Gemma returned a correct four-sentence summary as a single string, and strict validation threw the whole recap away. The prompt now shows the exact shape, and the validator splits a single multi-sentence summary into sentences. A one-sentence summary is still rejected.
@@ -325,3 +325,59 @@ Everything below was run against the live site, https://aulaapp.xyz, after deplo
 | Teacher screen | 100 | 100 | 100 | 100 | 1.4s |
 
 **The one issue found: a date that depended on the time zone.** The demo's "recorded on" date was formatted in each machine's own time zone. Render's server runs on UTC and the recording finished just after midnight UTC, so the server printed September 27 while browsers in the US printed September 26. React reported a hydration mismatch, which cost the demo 4 best-practice points. All dates are now formatted in one fixed time zone (US Eastern). A test covers it, and a local run with the server on UTC and a browser in Los Angeles shows no console errors.
+
+---
+
+## Latency pass (Sep 27)
+
+**What prompted it.** People testing Aula said translation took far too long (about a minute while the teacher talked) and the recap took about 2 minutes to reach their language, long enough for a student to get lost or click away.
+
+**What we measured first.** Before changing anything we wrote `scripts/latency-check.mts`, which runs a realistic lesson through the real app and the real AI: a teacher talking non-stop at about 160 words a minute for 90 seconds (the way speech recognition returns it, with no punctuation), students joined in several languages, then the recap. It times every caption from the moment the teacher said the words. It reproduced the complaint, and a few direct tests against Featherless explained it:
+- **Featherless runs one request at a time for our whole account,** at about 33 tokens a second, whatever the model. Four requests sent together finished at 5, 12, 18 and 24 seconds. Smaller models were no faster (27 to 35 tokens a second). Every lesson, language, definition and recap shares that one pipe.
+- **It has slow spells.** A request that normally takes 6 seconds once took 25.
+- **Cancelling a request frees the pipe at once,** so preempting background work was never the problem.
+
+**What made captions slow.**
+- *Speech recognition only finishes a sentence when the teacher pauses.* Talking non-stop produced 30 to 40 word "sentences", translated only after their last word, 15 to 20 seconds after their first.
+- *One Somali, Haitian Creole or Dari reader moved the whole lesson to the slower model,* so Spanish waited for Gemma too.
+- *A backlog merged four long sentences into one call,* which could hit the 15-second cap and fall back to English.
+
+**What made recaps slow.**
+- *The term definitions for each language ran on the slow model at a higher priority than the recap,* so the recap waited behind them. In the 5-language test the English recap alone took 108 seconds.
+- *The English recap was written by the slower model,* then translated one language at a time, each in full, before the next language started.
+
+**Decisions.**
+1. **Non-stop speech is sent in pieces.** Once about 12 words have settled in the recognizer's interim text, they're sent as their own line, breaking before a joining word ("and", "because", "which") when there is one. When the recognizer's final result arrives, only the words not yet sent go out, even if it revised a word in between (`src/lib/chunking.ts`, tested with real Chrome speech in `e2e/speech-long.spec.ts`).
+2. **Each model has its own queue.** Languages on the stronger model get a separate call, and the queues take turns, oldest line first. The slow queue merges what piled up, so it makes fewer calls.
+3. **Merged calls are sized by the expected reply** (about 360 tokens, roughly 11 seconds), not by line count, and the time cap grows with the size of the call.
+4. **We stop reading as soon as the reply's JSON is complete, or when it turns into whitespace.** In JSON mode the models sometimes keep writing spaces and tabs, after the JSON or in the middle of it, until they hit their token limit. That was costing up to 10 seconds per call, and in the middle of a reply it left the last languages undelivered.
+5. **Whatever didn't arrive gets one more try.** If a call stalls (the provider sometimes doesn't answer for 8 seconds) or trails off before every language, the missing languages are asked for again, as long as the line is under 10 seconds old. Languages that already arrived aren't sent twice.
+6. **Recaps come right after live captions,** ahead of definitions. Definitions for a lesson that has ended come last of all.
+7. **The English recap is written by the fast model.** On the demo transcript both models wrote a good recap; Qwen took about 10 seconds and Gemma about 15.
+8. **Every language gets its summary first.** The recap is translated in two parts: the summary for every language (a few seconds each, most-read language first), then key terms and questions. The "What you missed" page shows the summary the moment it's ready and fills in the rest.
+9. **Definitions use the fast model, one term per call** (about 2 seconds), with a second pass for any term the model left out. The slower model is still used for Somali, Haitian Creole and Dari. A definition that is less than a second from done may finish before the next caption starts; otherwise captions always go first. We tried a flat 1-second grace period, but it slowed captions from 3.6 to 4.9 seconds.
+
+**A bug found along the way.** When a caption interrupted a recap call, the recap was sometimes dropped instead of retried. The code recognized an interruption with `instanceof`, but Next.js can load the same file once per route, so an interruption raised by one copy wasn't recognized by another. It now checks the error's name. The same bug could have silently dropped definitions.
+
+**Results** (same test, fresh server each time):
+
+| 3 students (Spanish, Chinese, Arabic) | Before | After |
+|---|---|---|
+| Caption on the phone, from the moment the teacher starts saying it (median) | 13 to 15s | 6.5 to 7.3s |
+| Caption, from the moment the teacher finishes saying it (median) | 2.8 to 5.2s | 3.1 to 4.0s |
+| English recap after "End lesson" | 25s | 11s |
+| Recap summary in each student's language | 39 to 64s (whole recap at once) | 16 to 24s |
+| Whole recap in each language | 39 to 64s | 35 to 54s |
+| All 8 definitions ready, while the teacher talked non-stop | 97 to 109s | 61 to 83s |
+
+| 5 students, one reading Somali | Before | After |
+|---|---|---|
+| Caption, from the moment the teacher starts saying it (median) | 15 to 24s | 15 to 18s |
+| Lines left in English | 0 of 40 | 0 of 115 |
+| English recap after "End lesson" | 108s | 16s |
+| Recap summary in each language | 124 to 163s; Somali not within 3 minutes | 21 to 44s |
+| Whole recap in each language | 124s and up | 55 to 113s |
+
+**The real-AI test lessons** (`e2e/real-ai.spec.ts`, four sentences 5 seconds apart, three runs on fresh servers, median per run): Spanish 1.3 to 1.8s and Arabic 2.3 to 2.8s; in the room with a Somali reader, Somali 2.8 to 3.3s (it was 4.8s in production before, and Spanish there no longer waits for the slower model).
+
+**The honest limit.** Five languages including Somali, with a teacher who never pauses, is more work than one Featherless account can do: each line arrives about 13 seconds after the teacher finishes it. Real lessons have pauses, and most rooms have fewer languages. A faster provider would remove the limit (the AI client is OpenAI-compatible, so it's a configuration change), but that is a choice for after the hackathon.
