@@ -209,3 +209,11 @@ One free web service and one free Postgres, with `DATABASE_URL` wired automatica
 
 **Virginia region.**
 US East, since most judges are likely in the US. The database must be in the same region as the web service for the free internal connection.
+
+**What production taught us (first deploy, Sep 26).**
+Testing against the live Render site (behind Cloudflare) confirmed that live captions stream fine through their network, and that the Wi-Fi-drop replay works there. It also found three things local testing hadn't:
+- **One slow reply can hold up every classroom.** A Featherless reply once took over 30 seconds. Because only one AI call runs at a time, that delays captions everywhere. Live caption calls are now capped at 15 seconds, and students see English after that.
+- **We couldn't see why a line was slow.** Render's logs aren't available to our tests, so each AI call now records its wait, time to first words, total time and outcome. A teacher-only endpoint (`/api/lessons/:id/stats`) reports them, and it doubles as our latency measurement.
+- **The model "corrected" a sentence that wasn't wrong.** It rewrote "Plants take in carbon dioxide" as "Plants absorb carbon dioxide", and the app showed that as a repair of the teacher's words. Repairs are now accepted only if they restore one of the teacher's key terms ("sell membrane" to "cell membrane") and change at most 3 words, and the prompt now says to never rephrase.
+
+Measured in production, with a teacher and two phones, 4 sentences, real AI: Spanish 2.3s and Arabic 3.3s median (Qwen). In a room with a Somali reader (Gemma): Spanish 4.8s and Somali 8.3s median.
