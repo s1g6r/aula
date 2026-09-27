@@ -3,6 +3,7 @@ import { buildTranslationMessages, type ChatMessage } from "@/lib/ai/prompts";
 import { LangTranslationSchema, type LangTranslation } from "@/lib/ai/schemas";
 import type { LanguageCode } from "@/lib/languages";
 import { findKeyTerms } from "@/lib/terms";
+import { acceptFix } from "./fix";
 import { translationCacheKey, type Lru } from "./lru";
 import type { ModelChoice } from "./routing";
 
@@ -259,7 +260,7 @@ export class LessonTranslator {
         if (!delivered.has(`${seg.seq}|${lang}`)) this.d.publish("translation-failed", { seq: seg.seq, lang, reason: "failed" }, { lang });
       }
       const fix = fixes.get(seg.seq);
-      if (fix && norm(fix) !== norm(seg.text)) {
+      if (fix && acceptFix(seg.text, fix, this.d.lesson.keyTerms)) {
         this.d.publish("fix", { seq: seg.seq, text: fix }, "all");
         this.d.saveFix(seg.id, fix).catch((err) => this.d.onError?.(err));
       }

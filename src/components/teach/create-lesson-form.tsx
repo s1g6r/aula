@@ -35,7 +35,7 @@ export function CreateLessonForm({ example = false }: { example?: boolean }) {
           name="keyTerms"
           rows={3}
           placeholder="Paste slide text or type words, separated by commas"
-          defaultValue={example ? "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, Calvin cycle, ATP" : undefined}
+          defaultValue={example ? "photosynthesis, chlorophyll, chloroplast, glucose, carbon dioxide, Calvin cycle, ATP, cell membrane" : undefined}
           aria-describedby="keyTerms-help"
         />
         <p id="keyTerms-help" className="text-sm text-ink-2">
