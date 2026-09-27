@@ -19,8 +19,8 @@ type Props = {
   me: { nickname: string; lang: string };
 };
 
-type Glossary = Record<string, { tr: string; gloss: string }>;
-type OpenTerm = { en: string; tr?: string };
+export type Glossary = Record<string, { tr: string; gloss: string }>;
+export type OpenTerm = { en: string; tr?: string };
 
 const PREFS_KEY = "aula:student";
 const WORDS_KEY = "aula:words";
@@ -136,6 +136,7 @@ export function StudentLive({ lesson, me }: Props) {
       </header>
 
       <Captions
+        glossary={glossary}
         lines={captions.lines}
         interim={captions.interim}
         lang={lang}
@@ -217,7 +218,7 @@ export function StudentLive({ lesson, me }: Props) {
   );
 }
 
-function StatusLine({ status, ended, t }: { status: StreamStatus; ended: boolean; t: StudentStrings }) {
+export function StatusLine({ status, ended, t }: { status: StreamStatus; ended: boolean; t: StudentStrings }) {
   if (ended) return <p className="text-xs text-ink-2">{t.ended}</p>;
   const ok = status === "live";
   return (
@@ -229,6 +230,7 @@ function StatusLine({ status, ended, t }: { status: StreamStatus; ended: boolean
 }
 
 type CaptionsProps = {
+  glossary: Glossary;
   lines: CaptionLine[];
   interim: string;
   lang: string;
@@ -239,7 +241,7 @@ type CaptionsProps = {
   onTerm: (term: OpenTerm) => void;
 };
 
-function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, onTerm }: CaptionsProps) {
+export function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, onTerm, glossary }: CaptionsProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
   const language = getLanguage(lang);
@@ -293,6 +295,7 @@ function Captions({ lines, interim, lang, t, ended, bilingual, keyTerms, onTerm 
                 bilingual={bilingual}
                 keyTerms={keyTerms}
                 onTerm={onTerm}
+                glossary={glossary}
               />
             ))}
           </ol>
@@ -357,7 +360,9 @@ function CaptionItem({
   bilingual,
   keyTerms,
   onTerm,
+  glossary,
 }: {
+  glossary: Glossary;
   line: CaptionLine;
   latest: boolean;
   lang: string;
@@ -369,14 +374,24 @@ function CaptionItem({
 }) {
   const english = line.fix ?? line.en;
   const faded = latest ? "" : "opacity-80";
-  const trTerms = useMemo(() => line.tr?.terms ?? [], [line.tr]);
-  // English highlights: the translation's terms when we have them,
-  // otherwise the teacher's key terms we can find in the sentence.
-  const enNeedles = useMemo(() => {
-    const terms = trTerms.length ? trTerms.map((x) => x.en) : findKeyTerms(english, keyTerms);
-    return terms.map((term) => ({ match: term, term, tr: trTerms.find((x) => x.en === term)?.tr }));
-  }, [trTerms, english, keyTerms]);
-  const trNeedles = useMemo(() => trTerms.map((x) => ({ match: x.tr, term: x.en, tr: x.tr })), [trTerms]);
+  // Key terms in this sentence, and how each appears in the translation:
+  // from the reply if it said, otherwise the glossary's standard word (found
+  // in the translated text). Highlights appear as soon as the glossary does.
+  const { enNeedles, trNeedles } = useMemo(() => {
+    const fromReply = line.tr?.terms ?? [];
+    const terms = findKeyTerms(english, keyTerms);
+    const text = line.tr?.text.toLowerCase() ?? "";
+    const tr = terms
+      .map((term) => {
+        const word = fromReply.find((x) => termKey(x.en) === termKey(term))?.tr ?? glossary[termKey(term)]?.tr;
+        return word && text.includes(word.toLowerCase()) ? { match: word, term, tr: word } : null;
+      })
+      .filter((x): x is { match: string; term: string; tr: string } => x !== null);
+    return {
+      enNeedles: terms.map((term) => ({ match: term, term, tr: tr.find((x) => x.term === term)?.tr ?? glossary[termKey(term)]?.tr })),
+      trNeedles: tr,
+    };
+  }, [line.tr, english, keyTerms, glossary]);
 
   if (lang === "en" || line.trStatus === "none") {
     return (
@@ -431,7 +446,7 @@ function saveWord(word: { en: string; tr?: string; gloss?: string; lang: string;
   }
 }
 
-function TermSheet({ term, onClose, lang, glossary, t, lessonTitle }: { term: OpenTerm | null; onClose: () => void; lang: string; glossary: Glossary; t: StudentStrings; lessonTitle: string | null }) {
+export function TermSheet({ term, onClose, lang, glossary, t, lessonTitle }: { term: OpenTerm | null; onClose: () => void; lang: string; glossary: Glossary; t: StudentStrings; lessonTitle: string | null }) {
   const entry = term ? glossary[termKey(term.en)] : undefined;
   const tr = term?.tr ?? entry?.tr;
   const language = getLanguage(lang);
