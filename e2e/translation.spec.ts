@@ -40,11 +40,12 @@ test("each phone gets its own language, with tappable key terms", async ({ brows
   await expect(captions(spanish).locator("p[lang=en]", { hasText: "Today we are talking about photosynthesis." })).toHaveCount(0);
 });
 
-test("the model's speech-recognition fix replaces the misheard words", async ({ browser }) => {
+test("a misheard key term is repaired before anyone sees or translates it", async ({ browser }) => {
   const { page: teacher, code } = await startGuestLesson(browser);
   const student = await joinAsStudent(browser, code, "Linh", /^Tiếng Việt$/);
   await say(teacher, "Water moves through the sell membrane.");
-  await expect(captions(student).getByText("vi: Water moves through the sell membrane.")).toBeVisible({ timeout: 5000 });
+  // The repaired sentence is what gets translated.
+  await expect(captions(student).getByText("vi: Water moves through the cell membrane.")).toBeVisible({ timeout: 5000 });
   await expect(captions(student).locator("p[lang=en]", { hasText: "Water moves through the cell membrane." })).toBeVisible();
   await expect(captions(teacher).getByText("Water moves through the cell membrane.")).toBeVisible();
 });

@@ -29,8 +29,7 @@ test("the demo replay tells the whole story", async ({ page }) => {
   await expect(phone.getByRole("dialog")).toContainText("Hear it");
 
   // Skip to the end: the recap opens on the phone.
-  await page.getByLabel("Replay position").fill("999999");
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.getByLabel("Replay position").press("End");
   await expect(phone.getByText("What we learned")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Replay of a lesson processed by Aula/)).toBeVisible();
 });

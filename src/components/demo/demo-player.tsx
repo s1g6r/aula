@@ -22,7 +22,6 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
   const [speed, setSpeed] = useState(1);
   const [lang, setLang] = useState(data.languages[0] ?? "es");
   const [openTerm, setOpenTerm] = useState<OpenTerm | null>(null);
-  const [recapOpen, setRecapOpen] = useState(false);
 
   // The clock. Ten ticks a second is plenty for captions and keeps rendering cheap.
   useEffect(() => {
@@ -38,19 +37,22 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
   }, [playing, speed, tl.durationMs]);
 
   // The phone opens its recap by itself shortly after it's ready, so the
-  // story finishes even if nobody clicks.
+  // story finishes even if nobody clicks, unless the viewer closed it.
+  // Seeking back before the end of the lesson resets that choice.
   const autoRecapAt = tl.recapReadyMs + 2000;
-  const showRecap = recapOpen;
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the replay clock drives the story
-    if (t >= autoRecapAt && t < autoRecapAt + TICK_MS * 3) setRecapOpen(true);
-    if (t < tl.endMs) setRecapOpen(false);
-  }, [t, autoRecapAt, tl.endMs]);
+  const [recapChoice, setRecapChoice] = useState<"auto" | "open" | "closed">("auto");
+  const choice = t < tl.endMs ? "auto" : recapChoice;
+  const showRecap = t >= tl.recapReadyMs && (choice === "open" || (choice === "auto" && t >= autoRecapAt));
 
-  const seek = useCallback((ms: number) => {
-    setT(Math.max(0, Math.min(tl.durationMs, ms)));
-    setOpenTerm(null);
-  }, [tl.durationMs]);
+  const seek = useCallback(
+    (ms: number) => {
+      const next = Math.max(0, Math.min(tl.durationMs, ms));
+      setT(next);
+      setOpenTerm(null);
+      if (next < tl.endMs) setRecapChoice("auto");
+    },
+    [tl.durationMs, tl.endMs],
+  );
 
   // Keyboard: space plays/pauses, arrows jump 5 seconds.
   useEffect(() => {
@@ -117,7 +119,7 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
 
       <div className="mt-5 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* Teacher's laptop */}
-        <section aria-label="The teacher's screen" className="order-2 overflow-hidden rounded-2xl border bg-background shadow-[0_24px_60px_-30px_rgba(27,30,43,0.35)] lg:order-1">
+        <section aria-label="The teacher's screen" className="order-3 overflow-hidden rounded-2xl border bg-background shadow-[0_24px_60px_-30px_rgba(27,30,43,0.35)] lg:order-1">
           <div className="flex items-center gap-2 border-b bg-card px-4 py-2.5">
             <span className="size-2.5 rounded-full bg-ink/15" />
             <span className="size-2.5 rounded-full bg-ink/15" />
@@ -193,9 +195,9 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
             interim={interim}
             ended={ended}
             recapReady={recapReady}
-            recapOpen={showRecap && recapReady}
-            onOpenRecap={() => setRecapOpen(true)}
-            onCloseRecap={() => setRecapOpen(false)}
+            recapOpen={showRecap}
+            onOpenRecap={() => setRecapChoice("open")}
+            onCloseRecap={() => setRecapChoice("closed")}
             glossary={glossary}
             openTerm={openTerm}
             onTerm={setOpenTerm}
@@ -203,54 +205,55 @@ export function DemoPlayer({ data }: { data: ReplayData }) {
             slowerTap={phoneSlower}
           />
         </section>
-      </div>
 
-      {/* Controls */}
-      <div className="mt-5 rounded-2xl border bg-card p-3 sm:p-4">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            onClick={() => (t >= tl.durationMs ? (seek(0), setPlaying(true)) : setPlaying((p) => !p))}
-            className="flex h-10 items-center gap-2 rounded-full bg-ink px-3.5 text-sm font-semibold text-paper sm:px-4"
-          >
-            {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
-            {playing ? "Pause" : "Play"}
-          </button>
-          <button onClick={() => setSpeed((s) => (s === 1 ? 2 : 1))} className="h-10 shrink-0 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label={`Speed ${speed}x, switch to ${speed === 1 ? 2 : 1}x`}>
-            {speed}x
-          </button>
-          <button onClick={() => (seek(tl.lostMomentMs), setPlaying(true))} className="flex h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label="Jump to the lost moment">
-            <SkipForward className="size-4 shrink-0" aria-hidden /> <span className="hidden sm:inline">Jump to the lost moment</span>
-            <span className="sm:hidden">Lost moment</span>
-          </button>
-          <button onClick={() => (seek(0), setPlaying(true))} className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label="Restart">
-            <RotateCcw className="size-4" aria-hidden /> <span className="hidden sm:inline">Restart</span>
-          </button>
-          <span className="ml-auto hidden text-sm text-ink-2 tabular-nums sm:inline">
-            {mmss(t)} / {mmss(tl.durationMs)}
-          </span>
-        </div>
-        <div className="relative mt-3">
-          <input
-            type="range"
-            min={0}
-            max={tl.durationMs}
-            step={100}
-            value={t}
-            onChange={(e) => seek(Number(e.target.value))}
-            aria-label="Replay position"
-            aria-valuetext={`${mmss(t)} of ${mmss(tl.durationMs)}`}
-            className="w-full accent-coral"
-          />
-          <div className="pointer-events-none relative h-4" aria-hidden>
-            {markers.map((m) => (
-              <span key={m.label} className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${(m.at / tl.durationMs) * 100}%` }}>
-                <span className={cn("size-2 rounded-full", m.color)} />
-                <span className="mt-0.5 hidden text-[10px] whitespace-nowrap text-ink-2 sm:block">{m.label}</span>
-              </span>
-            ))}
+        {/* Controls */}
+        <div className="order-2 rounded-2xl border bg-card p-3 sm:p-4 lg:order-3 lg:col-span-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => (t >= tl.durationMs ? (seek(0), setPlaying(true)) : setPlaying((p) => !p))}
+              className="flex h-10 items-center gap-2 rounded-full bg-ink px-3.5 text-sm font-semibold text-paper sm:px-4"
+            >
+              {playing ? <Pause className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
+              {playing ? "Pause" : "Play"}
+            </button>
+            <button onClick={() => setSpeed((s) => (s === 1 ? 2 : 1))} className="h-10 shrink-0 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label={`Speed ${speed}x, switch to ${speed === 1 ? 2 : 1}x`}>
+              {speed}x
+            </button>
+            <button onClick={() => (seek(tl.lostMomentMs), setPlaying(true))} className="flex h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label="Jump to the lost moment">
+              <SkipForward className="size-4 shrink-0" aria-hidden /> <span className="hidden sm:inline">Jump to the lost moment</span>
+              <span className="sm:hidden">Lost moment</span>
+            </button>
+            <button onClick={() => (seek(0), setPlaying(true))} className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium sm:px-4" aria-label="Restart">
+              <RotateCcw className="size-4" aria-hidden /> <span className="hidden sm:inline">Restart</span>
+            </button>
+            <span className="ml-auto hidden text-sm text-ink-2 tabular-nums sm:inline">
+              {mmss(t)} / {mmss(tl.durationMs)}
+            </span>
+          </div>
+          <div className="relative mt-3">
+            <input
+              type="range"
+              min={0}
+              max={tl.durationMs}
+              step={100}
+              value={t}
+              onChange={(e) => seek(Number(e.target.value))}
+              aria-label="Replay position"
+              aria-valuetext={`${mmss(t)} of ${mmss(tl.durationMs)}`}
+              className="w-full accent-coral"
+            />
+            <div className="pointer-events-none relative h-4" aria-hidden>
+              {markers.map((m) => (
+                <span key={m.label} className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${(m.at / tl.durationMs) * 100}%` }}>
+                  <span className={cn("size-2 rounded-full", m.color)} />
+                  <span className="mt-0.5 hidden text-[10px] whitespace-nowrap text-ink-2 sm:block">{m.label}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
       <p className="mx-auto mt-4 max-w-3xl text-center text-xs leading-relaxed text-ink-2">
         Replay of a lesson processed by Aula&rsquo;s live pipeline on{" "}
         {new Date(data.generatedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. The translations, definitions, speech fix and recap are real AI output
