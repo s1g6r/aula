@@ -1,6 +1,20 @@
+import ar from "./strings/ar.json";
+import es from "./strings/es.json";
+import faAF from "./strings/fa-AF.json";
+import fil from "./strings/fil.json";
+import fr from "./strings/fr.json";
+import ht from "./strings/ht.json";
+import pt from "./strings/pt.json";
+import ru from "./strings/ru.json";
+import so from "./strings/so.json";
+import uk from "./strings/uk.json";
+import vi from "./strings/vi.json";
+import zhHans from "./strings/zh-Hans.json";
+
 // Interface text on the student's phone. A newcomer may not read English,
-// so these are shown in the student's language (translations are added in
-// P8 and marked as machine-translated). English is the fallback.
+// so everything is shown in the student's language. The translations in
+// ./strings were made once with AI (scripts/translate-ui.mts) and the
+// settings sheet says so. English is the fallback for anything missing.
 
 export const STUDENT_STRINGS_EN = {
   waiting: "Waiting for your teacher to start talking...",
@@ -65,7 +79,7 @@ export const STUDENT_STRINGS_EN = {
 
 export type StudentStrings = typeof STUDENT_STRINGS_EN;
 
-const STRINGS: Record<string, Partial<StudentStrings>> = {};
+const STRINGS: Record<string, Partial<StudentStrings>> = { es, ar, "zh-Hans": zhHans, vi, pt, ht, uk, ru, "fa-AF": faAF, so, fil, fr };
 
 export function studentStrings(lang: string): StudentStrings {
   return { ...STUDENT_STRINGS_EN, ...STRINGS[lang] };
