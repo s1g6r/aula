@@ -47,9 +47,18 @@ export type GlossaryResponse = z.infer<typeof GlossaryResponseSchema>;
 
 export const QuestionTranslationSchema = z.object({ en: z.string().trim().min(1).max(1000) });
 
+// Models sometimes return the whole summary as one string of several
+// sentences. Split it into one sentence per item rather than rejecting a
+// good recap (seen with Gemma in testing).
+export function splitSummary(value: unknown): unknown {
+  if (!Array.isArray(value) || value.length !== 1 || typeof value[0] !== "string") return value;
+  const parts = value[0].split(/(?<=[.!?])\s+(?=[A-Z0-9"'])/).map((x: string) => x.trim()).filter(Boolean);
+  return parts.length > 1 ? parts.slice(0, 6) : value;
+}
+
 // Lesson recap, written in English from the transcript when a lesson ends.
 export const RecapSchema = z.object({
-  summary: z.array(z.string().trim().min(1).max(400)).min(2).max(6),
+  summary: z.preprocess(splitSummary, z.array(z.string().trim().min(1).max(400)).min(2).max(6)),
   keyTerms: z.array(z.object({ term: z.string().trim().min(1).max(80), definition: z.string().trim().min(1).max(300) })).max(10),
   checkQuestions: z.array(z.object({ q: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(400) })).min(1).max(5),
 });

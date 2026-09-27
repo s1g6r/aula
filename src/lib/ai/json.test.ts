@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractJson, parseModelJson, scanTranslationStream } from "./json";
-import { TranslationResponseSchema } from "./schemas";
+import { RecapSchema, TranslationResponseSchema } from "./schemas";
 
 const good = {
   segments: [
@@ -111,5 +111,18 @@ describe("scanTranslationStream", () => {
   it("waits for a number that may still be growing", () => {
     expect(scanTranslationStream('{"segments":[{"seq":1')[0]).toBeUndefined();
     expect(scanTranslationStream('{"segments":[{"seq":12,')[0].seq).toBe(12);
+  });
+});
+
+describe("RecapSchema", () => {
+  const base = { keyTerms: [], checkQuestions: [{ q: "What is ATP?", answer: "An energy molecule." }] };
+
+  it("splits a summary that came back as one string of sentences", () => {
+    const r = RecapSchema.safeParse({ ...base, summary: ["Plants make food. They use sunlight! Where? In chloroplasts."] });
+    expect(r.success && r.data.summary).toEqual(["Plants make food.", "They use sunlight!", "Where?", "In chloroplasts."]);
+  });
+
+  it("still rejects a one-sentence summary", () => {
+    expect(RecapSchema.safeParse({ ...base, summary: ["Plants make food."] }).success).toBe(false);
   });
 });
