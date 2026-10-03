@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-
+// we luv sagar bub
 // Locally, tests run against a production build on port 3100 whose AI calls
 // go to e2e/mock-ai.mjs, so they're fast, free and predictable.
 // BASE_URL=https://aulaapp.xyz runs the same tests against production (P9).
