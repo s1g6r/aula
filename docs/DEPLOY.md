@@ -28,7 +28,7 @@ git push -u origin main
 
 The first build takes about 5 minutes. Watch it under **aula**, then **Logs**. When it says "Your service is live", open the URL at the top of the page. It looks like `https://aula-xxxx.onrender.com`. Add `/api/health` to the end, and you should see `{"ok":true,...}`.
 
-**Send me that `onrender.com` URL.** I'll run the end-to-end tests against it: live captions through Render's network, a Wi-Fi drop, translations, and signals.
+**Run the end-to-end tests against that `onrender.com` URL** (`BASE_URL=https://aula-xxxx.onrender.com npx playwright test`): live captions through Render's network, a Wi-Fi drop, translations, and signals.
 
 ## 3. Point aulaapp.xyz at Render
 

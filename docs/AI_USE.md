@@ -64,8 +64,8 @@ The hackathon allows AI and asks us to disclose it. This log is kept phase by ph
 - **We decided / changed:** to add Hindi, because Hindi speakers are a large group the original list left out. We reported the Chrome microphone problem from our own testing, and we brought in the blocked-site report after a friend at a university couldn't open Aula. We asked for security to be handled before the documentation work.
 
 ### P10: Documentation and submission drafts (Sep 27)
-- **Claude Code generated:** the README, ARCHITECTURE (with diagrams), EXPLAIN (15 judge questions), DEMO_SCRIPT (a captions-only video), the Devpost draft, the screenshots and the Demo Replay GIF (`scripts/capture-media.mts`).
-- **We decided / changed:** we rewrote the Devpost text in our own words, kept it in "we" because this was a two-person project, chose the "Built with" tags, recorded the demo video, and chose what to submit.
+- **Claude Code generated:** the README, ARCHITECTURE (with diagrams), EXPLAIN (15 judge questions), DEMO_SCRIPT (a script for a captions-only video, which we didn't end up making), the Devpost draft, the screenshots and the Demo Replay GIF (`scripts/capture-media.mts`).
+- **We decided / changed:** we rewrote the Devpost text in our own words, kept it in "we" because Aula was built by a team of four, chose the "Built with" tags, decided to skip a demo video because the Demo Replay on the site shows the whole product, and chose what to submit.
 
 ---
 
