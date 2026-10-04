@@ -68,7 +68,7 @@ The full explanation, with diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 
 - **No audio is recorded or stored.** Only text reaches Aula's server. Speech recognition is done by the browser: on the laptop when Chrome supports it, otherwise by Google's (Chrome) or Apple's (Safari) speech service.
 - **Students have no accounts** and don't give real names. Nicknames are shown only to the teacher.
-- **The AI never sees names,** only the lesson text, subject and key terms. It's told to translate only, never to answer questions or add content, and the recap is built only from what the teacher said.
+- **The AI never sees names,** only the lesson text, subject and key terms. It's told to translate only, never to answer questions or add content, and to write the recap only from what the teacher said.
 - **Questions are visible only to the teacher,** with a light profanity filter and a per-student mute.
 - **Lessons delete themselves after 30 days** (24 hours for "Try it live"), and the teacher can delete one at any time, with everything under it.
 - Rate limits on every public endpoint, strict security headers, no secrets in the repository.
@@ -77,6 +77,7 @@ The full explanation, with diagrams: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md
 
 - **AI throughput is shared.** Our Featherless plan processes one request at a time for every classroom, about 33 tokens a second. One or two lessons with a few languages are fast; five languages including Somali, with a teacher who never pauses, lag 10 to 15 seconds. A faster provider would remove this (a configuration change).
 - **Translations can be wrong,** especially in the beta languages. The English is always underneath, and students can flag a line.
+- **A recap of a very short lesson can add a background fact** the teacher didn't say, because it always writes at least three summary sentences. The recap page says it was written by AI and to ask the teacher if something looks wrong.
 - **Speech recognition needs Chrome, Edge or Safari** for the teacher. On an iPhone or iPad it needs Dictation turned on. Typing always works.
 - **The live event bus runs in one server's memory.** Several servers would need Redis pub/sub.
 - **Hackathon hosting:** the free database expires about 30 days after it was created (around Oct 26, 2026) and the Featherless key after about a month. The landing page and Demo Replay don't depend on either.
